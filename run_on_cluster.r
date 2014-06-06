@@ -2,17 +2,17 @@ set_dir <- function(analysis) {
 
 	dir_results <<- file.path(Sys.getenv("HOME"),"fitcourse",analysis)
 	if(!file.exists(dir_results)){
-		file.create(dir_results)
+		dir.create(dir_results)
 	}
 
 	dir_rds <<- file.path(dir_results,"rds")
 	if(!file.exists(dir_rds)){
-		file.create(dir_rds)
+		dir.create(dir_rds)
 	}
 
 	dir_fig <<- file.path(dir_results,"figures")
 	if(!file.exists(dir_fig)){
-		file.create(dir_fig)
+		dir.create(dir_fig)
 	}
 
 }

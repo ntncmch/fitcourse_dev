@@ -329,7 +329,7 @@ dev <- function(){
 	document(dir_pkg)
 	load_all(dir_pkg)
 	# test(dir_pkg)
-	# check(dir_pkg, check_dir=dir_dev, cleanup =FALSE)		
+	check(dir_pkg, check_dir=dir_dev, cleanup =FALSE)		
 
 	# dev_help("fitmodel")
 	# dev_help("FluTdC1971")
