@@ -64,6 +64,8 @@ run_MCMC_deterministic <- function() {
 
 main <- function() {
 
+	library(fitcourseR)
+
 	run_MCMC_deterministic()
 
 }
