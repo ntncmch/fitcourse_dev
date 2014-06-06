@@ -67,3 +67,5 @@ main <- function() {
 	run_MCMC_deterministic()
 
 }
+
+main()
