@@ -28,7 +28,7 @@ run_MCMC_deterministic <- function() {
 	adapt_size_start <- 50 
 	adapt_size_cooling <- 0.99
 	adapt_shape_start <- 100
-	print_info_every <- n_iteration/1000
+	print_info_every <- n_iteration/10000
 
 
 	# get env for replicate variable
