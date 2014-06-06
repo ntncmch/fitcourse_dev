@@ -30,7 +30,17 @@ run_MCMC_deterministic <- function() {
 	adapt_shape_start <- 100
 	print_info_every <- n_iteration/1000
 
-	analysis <- paste0("SEITL_deter_n=",n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start)
+
+	# get env for replicate variable
+	i_process <- as.numeric(Sys.getenv("ARG1")) + 1
+
+	# set seed multiplicator (time difference in second since 01-12-2012) so that simulations at different time can be combined (different parameter)
+	seed_mult <- as.numeric(Sys.time() - ISOdate(2012, 12, 1)) * 24 * 3600
+	
+	# set seed
+	set.seed(i_process * seed_mult)
+	
+	analysis <- paste0("SEITL_deter_n=",n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_run=",i_process)
 	set_dir(analysis)
 
 	ans <- mcmcMH(target=targetPosterior, target.args=list(log.prior=SEITL$log.prior, marginal.log.likelihood= marginalLogLikelihoodDeterministic, marginal.log.likelihood.args=list(fitmodel=SEITL)), theta.init=theta.init, gaussian.proposal=SEITL$gaussian.proposal, n.iterations=n_iteration, adapt.size.start=adapt_size_start, adapt.size.cooling=adapt_size_cooling, adapt.shape.start=adapt_shape_start, print.info.every=print_info_every)

@@ -5,19 +5,17 @@
 my $HOME="/users/ecologie/camacho";
 
 my $Condor_job_identifier="pdRscript";
-my $jobDir="$HOME/fitcourse";
+my $jobDir="$HOME/fitcourse/mcmc_deter_SEITL";
 my $scriptDir="$HOME/fitcourse";
 
-my @Rscript_list= ("project_anton");
+my @Rscript_list= ("run_on_cluster");
 
-#my @node_list= ("14");
-my @node_list= ("11","12","13");
-#my @node_list= ("14");
+my @node_list= ("10","11","15");
 
 my $exe= "$HOME/bin/R";
 my $uni= "vanilla";
 my $mem= "2*1024";
-my $replicate= "13";
+my $replicate= "4";
 
 #request reserved machines
 my $my_requirements="";
@@ -28,7 +26,7 @@ foreach $node (@node_list)
 #remove the + at the end of the string
 $my_requirements=substr($my_requirements,0,-1);
 
-#remove the .txt (submission, out, log and error files)
+# remove the .txt (submission, out, log and error files)
 system("rm -r $jobDir/*.txt");
 
 
@@ -37,7 +35,7 @@ foreach $Rscript (@Rscript_list)
     #my $scriptDir= "$jobDir";
     #system("rm -r $jobDir/Rsave $jobDir/pdf");
     system("mkdir -p $jobDir");
-    my $in= "$scriptDir/$Rscript.R";
+    my $in= "$scriptDir/$Rscript.r";
     my $out= "$jobDir/out_R\$(Process).txt";
 
     
