@@ -20,13 +20,14 @@ set_dir <- function(analysis) {
 my_SEITL_createModelTdC <- function(deterministic=TRUE, verbose=TRUE) {
 
 	library(plyr)
+	library(truncnorm)
 
 	# define theta using fitparam
 	R0 <- fitparam(name="R0",value=10,support=c(0,Inf),sd.proposal=1,prior=list(distribution="dunif",parameters=c(min=1,max=100))) 
 
-	LatentPeriod <- fitparam(name="LP",value=1.63,support=c(0,Inf),sd.proposal=0.2,prior=list(distribution="dnorm",parameters=c(mean=1.63,sd=0.26))) 
+	LatentPeriod <- fitparam(name="LP",value=1.63,support=c(0,Inf),sd.proposal=0.2,prior=list(distribution="dtruncnorm",parameters=c(mean=1.63,sd=0.26,a=0,b=Inf))) 
 
-	InfectiousPeriod <- fitparam(name="IP",value=1,support=c(0,Inf),sd.proposal=0.2,prior=list(distribution="dnorm",parameters=c(mean=0.99,sd=0.96))) 
+	InfectiousPeriod <- fitparam(name="IP",value=1,support=c(0,Inf),sd.proposal=0.2,prior=list(distribution="dtruncnorm",parameters=c(mean=0.99,sd=0.96,a=0,b=Inf))) 
 
 	TemporaryImmunePeriod  <- fitparam(name="TIP",value=10,support=c(0,Inf),sd.proposal=2,prior=list(distribution="dunif",parameters=c(min=0,max=50))) 
 
@@ -127,4 +128,4 @@ main <- function() {
 
 }
 
-main()
+# main()
