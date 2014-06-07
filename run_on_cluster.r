@@ -19,6 +19,8 @@ set_dir <- function(analysis) {
 
 my_SEITL_createModelTdC <- function(deterministic=TRUE, verbose=TRUE) {
 
+	library(plyr)
+
 	# define theta using fitparam
 	R0 <- fitparam(name="R0",value=10,support=c(0,Inf),sd.proposal=1,prior=list(distribution="dunif",parameters=c(min=1,max=100))) 
 
@@ -39,7 +41,7 @@ my_SEITL_createModelTdC <- function(deterministic=TRUE, verbose=TRUE) {
 	PopSize <- fitparam(name="N",value=284) 
 
 	# load and rename data
-	data("FluTdC1971",envir = environment())
+	data("FluTdC1971")
 	data <- rename(FluTdC1971,c("day"="time","incidence"="Inc"))[c("time","Inc")]
 
 	# simulator

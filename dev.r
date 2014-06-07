@@ -266,9 +266,10 @@ test_ABC <- function() {
 	# adaptative
 	ans <- mcmcMH(target=targetPosteriorABC, target.args=list(fitmodel=SEITL,epsilon=1), theta.init=theta.init, gaussian.proposal=SEITL$gaussian.proposal, n.iterations=1000, adapt.size.start=20, adapt.size.cooling=0.99, adapt.shape.start=50)
 
-	trace_trimed <- burnAndTrim(ans$trace,0.1,1000)
+	trace_trimed <- burnAndTrim(ans$trace,0.1,500)
 
-	plotTrace(trace_trimed)
+	plotTrace(trace_trimed,TRUE)
+	plotPosteriorDistribution(trace_trimed,TRUE)
 	plotPosteriorFit(trace_trimed,SEITL)
 
 }
@@ -329,7 +330,7 @@ dev <- function(){
 	document(dir_pkg)
 	load_all(dir_pkg)
 	# test(dir_pkg)
-	check(dir_pkg, check_dir=dir_dev, cleanup =FALSE)		
+	# check(dir_pkg, check_dir=dir_dev, cleanup =FALSE)		
 
 	# dev_help("fitmodel")
 	# dev_help("FluTdC1971")
