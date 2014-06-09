@@ -17,14 +17,14 @@ set_dir <- function(analysis) {
 
 }
 
-my_SEITL_createModelTdC <- function(deterministic=TRUE, verbose=TRUE) {
+my_SEIT2L_createModelTdC <- function(deterministic=TRUE, verbose=TRUE) {
 
 	library(plyr)
 	library(truncnorm)
 
 	# define theta using fitparam
 	R0 <- fitparam(name="R0",value=10,support=c(0,Inf),sd.proposal=1,prior=list(distribution="dunif",parameters=c(min=1,max=100))) 
-
+	
 	LatentPeriod <- fitparam(name="LP",value=1.63,support=c(0,Inf),sd.proposal=0.2,prior=list(distribution="dtruncnorm",parameters=c(mean=1.63,sd=0.26,a=0,b=Inf))) 
 
 	InfectiousPeriod <- fitparam(name="IP",value=1,support=c(0,Inf),sd.proposal=0.2,prior=list(distribution="dtruncnorm",parameters=c(mean=0.99,sd=0.96,a=0,b=Inf))) 
@@ -33,51 +33,52 @@ my_SEITL_createModelTdC <- function(deterministic=TRUE, verbose=TRUE) {
 
 	ProbLongTermImmunity <- fitparam(name="alpha",value=0.5,support=c(0,1),sd.proposal=0.1,prior=list(distribution="dunif",parameters=c(min=0,max=1))) 
 
-	ReportingRate <- fitparam(name="rho",value=0.7,support=c(0,Inf),sd.proposal=0.1,prior=list(distribution="dunif",parameters=c(min=0,max=2))) 
+	ReportingRate <- fitparam(name="rho",value=0.7,support=c(0,2),sd.proposal=0.1,prior=list(distribution="dunif",parameters=c(min=0,max=2))) 
 
 	proportionI0 <- fitparam(name="pI0",value=2/284,support=c(0,1),sd.proposal=1/284,prior=list(distribution="dunif",parameters=c(min=1/284,max=5/284))) 
 	
-	proportionL0 <- fitparam(name="pL0",value=0.04,support=c(0,1),sd.proposal=0.01,prior=list(distribution="dunif",parameters=c(min=0.0,max=0.1))) 
+	proportionL0 <- fitparam(name="pL0",value=0.1,support=c(0,1),sd.proposal=0.01,prior=list(distribution="dunif",parameters=c(min=0.0,max=0.5))) 
 	
 	PopSize <- fitparam(name="N",value=284) 
 
 	# load and rename data
-	data("FluTdC1971")
+	data("FluTdC1971",envir = environment())
 	data <- rename(FluTdC1971,c("day"="time","incidence"="Inc"))[c("time","Inc")]
 
 	# simulator
 	if(deterministic){
-		simulate.model <- SEITL_simulateDeterministic
+		simulate.model <- SEIT2L_simulateDeterministic
 	}else{
-		simulate.model <- SEITL_simulateStochastic
+		simulate.model <- SEIT2L_simulateStochastic
 	}
 
 	# create fitmodel
-	SEITL <- fitmodel(
+	SEIT2L <- fitmodel(
 		verbose=verbose,
-		name="SEITL",
-		state.variables=c("S","E","I","T","L","Inc"),
+		name="SEIT2L",
+		state.variables=c("S","E","I","T1","T2","L","Inc"),
 		list.fitparam=list(R0,LatentPeriod,InfectiousPeriod,TemporaryImmunePeriod,ProbLongTermImmunity,ReportingRate,proportionI0,proportionL0,PopSize), 
-		initialise.state=SEITL_initialiseState,
-		log.prior.fitparam=SEITL_logPrior,
+		initialise.state=SEIT2L_initialiseState,
+		log.prior.fitparam=SEIT2L_logPrior,
 		simulate.model=simulate.model, 
-		generate.observation=SEITL_generateObservation, 
+		generate.observation=SEIT2L_generateObservation, 
 		data=data, 
-		log.likelihood=SEITL_logLikelihood,
-		distance.ABC=SEITL_distanceOscillation
+		log.likelihood=SEIT2L_logLikelihood,
+		distance.ABC=SEIT2L_distanceOscillation
 		) 
 
-	return(SEITL)
+	return(SEIT2L)
 }
+
 
 
 run_MCMC_deterministic <- function() {
 
-	SEITL <- my_SEITL_createModelTdC(deterministic=TRUE, verbose=TRUE) 
+	SEIT2L <- my_SEIT2L_createModelTdC(deterministic=TRUE, verbose=TRUE) 
 
-	theta.init <- SEITL$theta
+	theta.init <- SEIT2L$theta
 
-	n_iteration <- 1000000
+	n_iteration <- 500000
 	adapt_size_start <- 50 
 	adapt_size_cooling <- 0.99
 	adapt_shape_start <- 100
@@ -93,13 +94,13 @@ run_MCMC_deterministic <- function() {
 	# set seed
 	set.seed(i_process * seed_mult)
 	
-	analysis <- paste0("SEITL_deter_infoPrior_n=",n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_run=",i_process)
+	analysis <- paste0("SEIT2L_deter_infoPrior_n=",n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_run=",i_process)
 	set_dir(analysis)
 
 	# save fitmodel
-	saveRDS(SEITL,file.path(dir_rds,"SEITL.rds"))
+	saveRDS(SEIT2L,file.path(dir_rds,"SEIT2L.rds"))
 
-	ans <- mcmcMH(target=targetPosterior, target.args=list(log.prior=SEITL$log.prior, marginal.log.likelihood= marginalLogLikelihoodDeterministic, marginal.log.likelihood.args=list(fitmodel=SEITL)), theta.init=theta.init, gaussian.proposal=SEITL$gaussian.proposal, n.iterations=n_iteration, adapt.size.start=adapt_size_start, adapt.size.cooling=adapt_size_cooling, adapt.shape.start=adapt_shape_start, print.info.every=print_info_every)
+	ans <- mcmcMH(target=targetPosterior, target.args=list(log.prior=SEIT2L$log.prior, marginal.log.likelihood= marginalLogLikelihoodDeterministic, marginal.log.likelihood.args=list(fitmodel=SEIT2L)), theta.init=theta.init, gaussian.proposal=SEIT2L$gaussian.proposal, n.iterations=n_iteration, adapt.size.start=adapt_size_start, adapt.size.cooling=adapt_size_cooling, adapt.shape.start=adapt_shape_start, print.info.every=print_info_every)
 	# save raw trace
 	saveRDS(ans,file.path(dir_rds,"ans_mcmcMH.rds"))
 
@@ -110,7 +111,7 @@ run_MCMC_deterministic <- function() {
 	saveRDS(trace_trimed,file.path(dir_rds,paste0("trace_b=",burn,"_trim=",trim,".rds")))
 
 
-	fit <- plotPosteriorFit(trace_trimed,SEITL,sample.size=300,plot=FALSE)
+	fit <- plotPosteriorFit(trace_trimed,SEIT2L,sample.size=300,plot=FALSE)
 	# save fit
 	saveRDS(fit,file.path(dir_rds,paste0("fit.rds")))
 

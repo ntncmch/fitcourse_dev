@@ -1,5 +1,7 @@
 dir_dev <- "/Users/Tonton/edu/Fit_course/dev"
 dir_pkg <- "/Users/Tonton/edu/Fit_course/git_material/fitcourseR"
+dir_knitr <- "/Users/Tonton/edu/Fit_course/git_material/doc"
+
 setwd(dir_dev)
 
 library(jsonlite)
@@ -232,15 +234,15 @@ test_mcmcMH <- function() {
 
 	ans <- mcmcMH(target=targetPosterior, target.args=list(log.prior=SEITL$log.prior, marginal.log.likelihood= marginalLogLikelihoodDeterministic, marginal.log.likelihood.args=list(fitmodel=SEITL)), theta.init=theta.init, gaussian.proposal=SEITL$gaussian.proposal, n.iterations=100, adapt.size.start=10, adapt.size.cooling=0.99, adapt.shape.start=10, print.info.every=200)
 	
-	trace_trimed <- burnAndTrim(ans$trace)
+	trace_thined <- burnAndThin(ans$trace)
 
 
-	plotTrace(trace_trimed)
-	plotPosteriorDistribution(trace_trimed)
+	plotTrace(trace_thined)
+	plotPosteriorDistribution(trace_thined)
 
 	SEITL_sto <- SEITL_createModelTdC(deterministic=FALSE, verbose=TRUE) 
 
-	fit <- plotPosteriorFit(trace_trimed,SEITL_sto,sample.size=300)
+	fit <- plotPosteriorFit(trace_thined,SEITL_sto,sample.size=300)
 
 
 }
@@ -265,11 +267,11 @@ test_ABC <- function() {
 	# adaptative
 	ans <- mcmcMH(target=targetPosteriorABC, target.args=list(fitmodel=SEITL,epsilon=1), theta.init=theta.init, gaussian.proposal=SEITL$gaussian.proposal, n.iterations=1000, adapt.size.start=20, adapt.size.cooling=0.99, adapt.shape.start=50)
 
-	trace_trimed <- burnAndTrim(ans$trace,0.1,500)
+	trace_thined <- burnAndThin(ans$trace,0.1,500)
 
-	plotTrace(trace_trimed,TRUE)
-	plotPosteriorDistribution(trace_trimed,TRUE)
-	plotPosteriorFit(trace_trimed,SEITL)
+	plotTrace(trace_thined,TRUE)
+	plotPosteriorDistribution(trace_thined,TRUE)
+	plotPosteriorFit(trace_thined,SEITL)
 
 }
 
@@ -314,10 +316,46 @@ step_by_step <- function() {
 		return(c(S=N-I-R,I=I,R=R,Inc=0))
 	}
 
+}
 
+analyse_mcmc_SEITL_deter <- function() {
 
+	dir_MCMC <- "/Users/Tonton/edu/Fit_course/MCMC"
+	# analyse <- "SEITL_deter_n=1e+06_size=50_cool=0.99_shape=100"
+	analyse <- "SEITL_deter_infoPrior_n=1e+06_size=50_cool=0.99_shape=100"
+	n_run <- 4
 
+	# for(i in 1:n_run){
+	# 	run <- paste0(analyse,"_run=",i)
+	# 	file <- file.path(dir_MCMC,run,"tracer.txt")
+	# 	trace <- readRDS(file.path(dir_MCMC,run,"rds","trace_b=0.1_thin=10000.rds"))
+	# 	export2Tracer(trace,file)		
+	# }
 
+	# assess fit
+	i <- 1
+	run <- paste0(analyse,"_run=",i)
+	trace <- readRDS(file.path(dir_MCMC,run,"rds","trace_b=0.1_thin=10000.rds"))
+	fitmodel <- readRDS(file.path(dir_MCMC,run,"rds","SEITL.rds"))
+
+	SEIT2L <- SEIT2L_createModelTdC(deterministic=TRUE, verbose=TRUE) 
+
+	plotPosteriorFit(trace, fitmodel=SEIT2L,posterior.median=TRUE ,summary=TRUE, sample.size = 100, plot=TRUE)
+	quartz()
+	plotPosteriorFit(trace, fitmodel,posterior.median=FALSE ,summary=TRUE, sample.size = 100, plot=TRUE)
+
+	# take one sample, plot autocorr, thin and burn, 
+
+}
+
+generate_knitr <- function() {
+
+	library(knitr)
+	wd <- getwd()
+	setwd(dir_knitr)
+	input <- file.path(dir_knitr,c("fitcourseR.Rmd"))
+	knit(input)	
+	setwd(wd)
 }
 
 dev <- function(){
@@ -328,7 +366,7 @@ dev <- function(){
 	# dev_mode()
 	document(dir_pkg)
 	load_all(dir_pkg)
-	test(dir_pkg)
+	# test(dir_pkg)
 	check(dir_pkg, check_dir=dir_dev, cleanup =FALSE)		
 
 	# dev_help("fitmodel")
@@ -344,7 +382,9 @@ dev <- function(){
 
 main <- function() {
 
-	dev()
+	# dev()
+	generate_knitr()
+	# analyse_mcmc_SEITL_deter()
 	# create_data()
 	# document(dir_pkg)
 	# load_all(dir_pkg)
