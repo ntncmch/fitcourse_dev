@@ -1,68 +1,28 @@
-dir_dev <- "/Users/Tonton/edu/Fit_course/dev"
-dir_pkg <- "/Users/Tonton/edu/Fit_course/git_material/fitcourseR"
-dir_knitr <- "/Users/Tonton/edu/Fit_course/git_material/doc"
 
-setwd(dir_dev)
+start_me <- function() {
 
-library(jsonlite)
-library(testthat)
-library(plyr)
-library(lubridate)
-library(ggplot2)
-library(stringr)
-library(reshape2)
-library(devtools)
-library(profr)
-library(deSolve)
-library(adaptivetau)
-library(compiler)
-library(rlecuyer)
-library(mvtnorm)
-library(tmvtnorm)
+	dir_dev <<- "/Users/Tonton/edu/Fit_course/dev"
+	dir_pkg <<- "/Users/Tonton/edu/Fit_course/fitR"
+	dir_knitr <<- "/Users/Tonton/edu/Fit_course/mfiidd/knitr"
+	dir_md <<- "/Users/Tonton/edu/Fit_course/mfiidd"
 
-test_fit2a <- function() {
+	# setwd(dir_dev)
 
-	dir_sto <- "/Users/Tonton/edu/Fit_course/git_material/stochastic"
-	setwd(dir_sto)
-	source(file.path(dir_sto,"fit2a_anton.R"))
-
-	# SIR model
-	parameters <- list(beta=10,epsilon=1/2,nu=1/3,gamma=1/10,alpha=0.5,rho=0.7)
-	init <- c(S=100,E=0,I=2,T=0,L=0,INC=0)
-	t0 <- 0
-	tend <- 59
-
-	# traj <- stochModelTraj(parameters, init, t0, tend)
-
-	# load TdC incidence data
-	# data <- read.csv("/Users/Tonton/edu/Fit_course/git_material/dataset/TdC_1971.csv")
-	# data <- mutate(data,date=as.Date(date),day=1:nrow(data))
-	# data <- data[,c("date","day","incidence")]
-	# saveRDS(data,"/Users/Tonton/edu/Fit_course/git_material/dataset/TdC_1971.rds")
-	TdC_data <- readRDS("/Users/Tonton/edu/Fit_course/git_material/dataset/TdC_1971.rds")
-
-	system.time(ans <- partFilter(parameters, init, TdC_data, nParticles=20))
-	pf_ex <- profr(partFilter(parameters, init, TdC_data, nParticles=10),0.02)
-	summary(pf_ex)
-	plot(pf_ex)
-	head(pf_ex)
-	df_time <- ddply(pf_ex,c("f","level"),function(df){return(data.frame(time=sum(df$time)))})
-	df_time <- arrange(df_time,level,time)
-	# plot TdC incidence vs model incidence X rho
-	all_traj <- ldply(seq_along(ans$traj),function(i){
-		traj <- ans$traj[[i]]
-		traj$particle <- i
-		traj$obs_INC <- sapply(parameters$rho*traj$INC,rpois,n=1)
-		return(traj)
-	},.progress="text")
-
-	p <- ggplot()
-	p <- p + geom_line(data=all_traj,aes(x=time,y=obs_INC,group=particle),alpha=1/10)
-	p <- p + geom_point(data=TdC_data,aes(x=day,y=incidence),col="red")
-	print(p+theme_bw())
-
-	#
-	ans <- stochasticPosterior(parameters, init, data=TdC_data, nParticles=20)
+	library(jsonlite)
+	library(testthat)
+	library(plyr)
+	library(lubridate)
+	library(ggplot2)
+	library(stringr)
+	library(reshape2)
+	library(devtools)
+	library(profr)
+	library(deSolve)
+	library(adaptivetau)
+	library(compiler)
+	library(rlecuyer)
+	library(mvtnorm)
+	library(tmvtnorm)
 
 
 }
@@ -82,7 +42,7 @@ simulate_SEITL <- function(SEITL) {
 	# create
 	SEITL <-  createSEITLmodelTDC(deter=FALSE,FALSE)
 
-	# simulate model
+	# simulateTraj model
 	tmp <- simulateModelReplicates(SEITL,0:60,50)
 	plotModelTraj(SEITL,tmp,state=c("I"),alpha=0.25,plot=TRUE)
 
@@ -110,7 +70,7 @@ SEITL_smc <- function() {
 	tmp <- ldply(np,function(nParticles) {
 		ll <- llply(1:10,function(x) {
 			smc <- bootstrapParticleFilter(fitmodel=SEITL,nParticles=nParticles,n.cores=NULL)
-			return(smc$log.likelihood)
+			return(smc$logLikePoint)
 		},.progress="text")
 		ll <- unlist(ll)
 		return(data.frame(mean=mean(ll),sd=sd(ll)))
@@ -128,24 +88,6 @@ SEITL_smc <- function() {
 	df_time <- arrange(df_time,level,time)
 
 }
-
-two_pass_cov <- function(data1,data2) {
-
-	n <- length(data1)
-	mean1 <- sum(data1)/n
-	mean2 <- sum(data2)/n
-
-	covariance <- 0
-
-	for(i in 1:n){
-		a <- data1[i]-mean1
-		b <- data2[i]-mean2
-		covariance <- covariance + a*b/n
-	}
-
-	return(covariance)
-}    
-
 
 test_update <- function() {
 
@@ -190,10 +132,6 @@ test_update <- function() {
 	print(var(x$a))
 	print(var(x$b))
 
-	
-
-
-
 }
 
 
@@ -217,9 +155,9 @@ test_simu <- function() {
 
 	times <- c(0,SEITL$data$time)
 	
-	traj <- SEITL$simulate.model(theta=SEITL$theta,state.init=SEITL$initialise.state(SEITL$theta),times=times)
+	traj <- SEITL$SEIT2L(theta=SEITL$theta,state.init=SEITL$initialise.state(SEITL$theta),times=times)
 
-	traj.obs <- SEITL$generate.observation(traj,SEITL$theta)
+	traj.obs <- SEITL$generateObservation(traj,SEITL$theta)
 
 	SEITL_distanceABC(traj.obs, SEITL$data)
 
@@ -232,7 +170,7 @@ test_mcmcMH <- function() {
 
 	theta.init <- SEITL$theta
 
-	ans <- mcmcMH(target=targetPosterior, target.args=list(log.prior=SEITL$log.prior, marginal.log.likelihood= marginalLogLikelihoodDeterministic, marginal.log.likelihood.args=list(fitmodel=SEITL)), theta.init=theta.init, gaussian.proposal=SEITL$gaussian.proposal, n.iterations=100, adapt.size.start=10, adapt.size.cooling=0.99, adapt.shape.start=10, print.info.every=200)
+	ans <- mcmcMH(target=targetPosterior, target.args=list(logPrior=SEITL$logPrior, marginal.logLikePoint= marginalLogLikelihoodDeterministic, marginal.logLikePoint.args=list(fitmodel=SEITL)), theta.init=theta.init, gaussian.proposal=SEITL$gaussian.proposal, n.iterations=100, adapt.size.start=10, adapt.size.cooling=0.99, adapt.shape.start=10, print.info.every=200)
 	
 	trace_thined <- burnAndThin(ans$trace)
 
@@ -297,7 +235,7 @@ step_by_step <- function() {
 	y <- setParameterValues(parameters,c("rho"=1))
 
 	# state variables
-	state.variables <- c("S","I","R")
+	state.names <- c("S","I","R")
 
 	# function to initialise the model
 	SIR_initialiseState <- function(parameters) {
@@ -352,21 +290,55 @@ generate_knitr <- function() {
 
 	library(knitr)
 	wd <- getwd()
-	setwd(dir_knitr)
-	input <- file.path(dir_knitr,c("fitcourseR.Rmd"))
-	knit(input)	
+	setwd(dir_md)
+	# files <- c("README","fitcourseR","first_fitmodel","data_likelihood","mcmc","play_with_seitl","smc","smc_solution","smc_example")
+	# files <- c("play_with_seitl")
+	# files <- c("smc","smc_solution","smc_example")
+	files <- c("ABC","ABC_example")
+	# files <- c("README")
+	all_input <- file.path(dir_knitr,paste0(files,".Rmd"))
+	all_output <- file.path(dir_md,paste0(files,".md"))
+	for(i in seq_along(all_input)){
+		knit(all_input[i],all_output[i])	
+	}
 	setwd(wd)
 }
+
+test_bootstrap <- function() {
+
+	SEITL <- SEITL_createModelTdC(deterministic=FALSE, verbose=FALSE) 
+	
+	n.replicates <- 100
+
+	x_ll <- x_ll_20
+	x_20 <- x
+	x_ll_20  <- x_ll
+
+	x_50 <- x
+	x_ll_50 <- x_ll
+
+
+	x <- lapply(1:n.replicates,bootstrapParticleFilter,fitmodel=SEITL,n.particles=10)
+	
+	x_ll <- sapply(x,function(smc) {smc$logLikePoint})
+	
+	hist(x_ll)
+
+	var(x_ll)
+
+	var(x_ll[is.finite(x_ll)])
+
+}
+
 
 dev <- function(){
 
 	# create R package
 	# create(dir_pkg)
-
-	# dev_mode()
+	# start_me()
 	document(dir_pkg)
-	load_all(dir_pkg)
-	# test(dir_pkg)
+	# load_all(dir_pkg)
+	# test(dir_pkg,"classe")
 	check(dir_pkg, check_dir=dir_dev, cleanup =FALSE)		
 
 	# dev_help("fitmodel")
@@ -382,8 +354,10 @@ dev <- function(){
 
 main <- function() {
 
-	# dev()
-	generate_knitr()
+	# dev_mode()
+	dev()
+	# test_bootstrap()
+	# generate_knitr()
 	# analyse_mcmc_SEITL_deter()
 	# create_data()
 	# document(dir_pkg)
