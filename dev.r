@@ -359,11 +359,11 @@ dev <- function(){
 
 main <- function() {
 
-	start_me()
+	# start_me()
 	# dev_mode()
-	dev()
+	# dev()
 	# test_bootstrap()
-	# generate_knitr()
+	generate_knitr()
 	# analyse_mcmc_SEITL_deter()
 	# create_data()
 	# document(dir_pkg)
