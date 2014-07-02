@@ -15,7 +15,7 @@ my @node_list= ("10","11");
 my $exe= "$HOME/bin/R";
 my $uni= "vanilla";
 my $mem= "2*1024";
-my $replicate= "8";
+my $replicate= "16";
 
 #request reserved machines
 my $my_requirements="";
