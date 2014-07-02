@@ -1,6 +1,7 @@
 library(devtools)
 # install last version
-install_github(repo="sbfnk/fitcourse/fitcourseR",auth_user="ntncmch")
+# dev_mode()
+install_github(repo="sbfnk/fitR")
 
 # install other packages
-install.packages("truncnorm")
+# install.packages("truncnorm")

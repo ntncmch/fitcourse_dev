@@ -17,103 +17,114 @@ set_dir <- function(analysis) {
 
 }
 
-my_SEIT2L_createModelTdC <- function(deterministic=TRUE, verbose=TRUE) {
+build_posterior_unifPrior <- function(stochastic=FALSE, SEIT2L=FALSE) {
 
-	library(plyr)
-	library(truncnorm)
-
-	# define theta using fitparam
-	R0 <- fitparam(name="R0",value=10,support=c(0,Inf),sd.proposal=1,prior=list(distribution="dunif",parameters=c(min=1,max=100))) 
-	
-	LatentPeriod <- fitparam(name="LP",value=1.63,support=c(0,Inf),sd.proposal=0.2,prior=list(distribution="dtruncnorm",parameters=c(mean=1.63,sd=0.26,a=0,b=Inf))) 
-
-	InfectiousPeriod <- fitparam(name="IP",value=1,support=c(0,Inf),sd.proposal=0.2,prior=list(distribution="dtruncnorm",parameters=c(mean=0.99,sd=0.96,a=0,b=Inf))) 
-
-	TemporaryImmunePeriod  <- fitparam(name="TIP",value=10,support=c(0,Inf),sd.proposal=2,prior=list(distribution="dunif",parameters=c(min=0,max=50))) 
-
-	ProbLongTermImmunity <- fitparam(name="alpha",value=0.5,support=c(0,1),sd.proposal=0.1,prior=list(distribution="dunif",parameters=c(min=0,max=1))) 
-
-	ReportingRate <- fitparam(name="rho",value=0.7,support=c(0,2),sd.proposal=0.1,prior=list(distribution="dunif",parameters=c(min=0,max=2))) 
-
-	proportionI0 <- fitparam(name="pI0",value=2/284,support=c(0,1),sd.proposal=1/284,prior=list(distribution="dunif",parameters=c(min=1/284,max=5/284))) 
-	
-	proportionL0 <- fitparam(name="pL0",value=0.1,support=c(0,1),sd.proposal=0.01,prior=list(distribution="dunif",parameters=c(min=0.0,max=0.5))) 
-	
-	PopSize <- fitparam(name="N",value=284) 
+	library(fitR)
 
 	# load and rename data
-	data("FluTdC1971",envir = environment())
-	data <- rename(FluTdC1971,c("day"="time","incidence"="Inc"))[c("time","Inc")]
+	data("FluTdC1971")
 
 	# simulator
-	if(deterministic){
-		simulate.model <- SEIT2L_simulateDeterministic
-	}else{
-		simulate.model <- SEIT2L_simulateStochastic
+	if(SEIT2L){
+		state.init <- c("S"=279,"E"=0,"I"=2,"T1"=3,"T2"=0,"L"=0,"Inc"=0)
+		if(stochastic){
+			example(SEIT2L_sto)
+			my_fitmodel <- SEIT2L_sto
+		}else{
+			example(SEIT2L_deter)
+			my_fitmodel <- SEIT2L_deter
+		}	
+	} else {
+		state.init <- c("S"=279,"E"=0,"I"=2,"T"=3,"L"=0,"Inc"=0)
+		if(stochastic){
+			example(SEITL_sto)
+			my_fitmodel <- SEITL_sto
+		}else{
+			example(SEITL_deter)
+			my_fitmodel <- SEITL_deter
+		}	
+	}
+	
+# trajLogLike(fitmodel=my_fitmodel, theta=theta.init, state.init=state.init, data=FluTdC1971)
+# my_fitmodel$logPrior(theta.init)
+
+	my_posterior <- function(theta){
+
+		return(logPosterior(fitmodel=my_fitmodel, theta=theta, state.init=state.init, data=FluTdC1971, margLogLike = trajLogLike))
+
 	}
 
-	# create fitmodel
-	SEIT2L <- fitmodel(
-		verbose=verbose,
-		name="SEIT2L",
-		state.variables=c("S","E","I","T1","T2","L","Inc"),
-		list.fitparam=list(R0,LatentPeriod,InfectiousPeriod,TemporaryImmunePeriod,ProbLongTermImmunity,ReportingRate,proportionI0,proportionL0,PopSize), 
-		initialise.state=SEIT2L_initialiseState,
-		log.prior.fitparam=SEIT2L_logPrior,
-		simulate.model=simulate.model, 
-		generate.observation=SEIT2L_generateObservation, 
-		data=data, 
-		log.likelihood=SEIT2L_logLikelihood,
-		distance.ABC=SEIT2L_distanceOscillation
-		) 
-
-	return(SEIT2L)
+	return(my_posterior)
 }
 
 
 
 run_MCMC_deterministic <- function() {
 
-	SEIT2L <- my_SEIT2L_createModelTdC(deterministic=TRUE, verbose=TRUE) 
 
-	theta.init <- SEIT2L$theta
 
-	n_iteration <- 500000
-	adapt_size_start <- 50 
+	n_iteration <- 100000
+	adapt_size_start <- 100 
 	adapt_size_cooling <- 0.99
 	adapt_shape_start <- 100
-	print_info_every <- n_iteration/10000
+	print_info_every <- n_iteration/1000
 
 
 	# get env for replicate variable
 	i_process <- as.numeric(Sys.getenv("ARG1")) + 1
 
+	if(i_process%in%c(1,3)){
+		theta.init <- c("R0"=2, "D.lat"=2 , "D.inf"=2, "alpha"=0.8, "D.imm"=16, "rho"=0.85)
+	} else {
+		theta.init <- c("R0"=20, "D.lat"=2 , "D.inf"=2, "alpha"=0.1, "D.imm"=8, "rho"=0.3)
+	}
+
+	SEIT2L <- (i_process%in%c(1,2))
+
+
+	targetPosterior <- build_posterior_unifPrior(sto=FALSE,SEIT2L=SEIT2L)
+
+
+	proposal.sd <- c("R0"=1, "D.lat"=0.5 , "D.inf"=0.5, "alpha"=0.1, "D.imm"=2, "rho"=0.1)
+	lower <- c("R0"=0, "D.lat"=0 , "D.inf"=0, "alpha"=0, "D.imm"=0, "rho"=0)
+	upper <- c("R0"=Inf, "D.lat"=Inf , "D.inf"=Inf, "alpha"=1, "D.imm"=Inf, "rho"=1)
+
 	# set seed multiplicator (time difference in second since 01-12-2012) so that simulations at different time can be combined (different parameter)
 	seed_mult <- as.numeric(Sys.time() - ISOdate(2012, 12, 1)) * 24 * 3600
-	
+
 	# set seed
 	set.seed(i_process * seed_mult)
+
+	analysis <- paste0(ifelse(SEIT2L,"SEIT2L","SEITL"),"_deter_unifPrior_n=",n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_run=",i_process)
 	
-	analysis <- paste0("SEIT2L_deter_infoPrior_n=",n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_run=",i_process)
 	set_dir(analysis)
 
-	# save fitmodel
-	saveRDS(SEIT2L,file.path(dir_rds,"SEIT2L.rds"))
+	ans <- mcmcMH(target=targetPosterior, theta.init=theta.init, proposal.sd=proposal.sd, limits=list(lower=lower,upper=upper), n.iterations=n_iteration, adapt.size.start=adapt_size_start, adapt.size.cooling=adapt_size_cooling, adapt.shape.start=adapt_shape_start, print.info.every=print_info_every)
 
-	ans <- mcmcMH(target=targetPosterior, target.args=list(log.prior=SEIT2L$log.prior, marginal.log.likelihood= marginalLogLikelihoodDeterministic, marginal.log.likelihood.args=list(fitmodel=SEIT2L)), theta.init=theta.init, gaussian.proposal=SEIT2L$gaussian.proposal, n.iterations=n_iteration, adapt.size.start=adapt_size_start, adapt.size.cooling=adapt_size_cooling, adapt.shape.start=adapt_shape_start, print.info.every=print_info_every)
 	# save raw trace
 	saveRDS(ans,file.path(dir_rds,"ans_mcmcMH.rds"))
 
-	burn <- 0.1
-	trim <- 1e4
-	trace_trimed <- burnAndTrim(ans$trace,burn=burn,trim=trim)
-	# save trimmed trace
-	saveRDS(trace_trimed,file.path(dir_rds,paste0("trace_b=",burn,"_trim=",trim,".rds")))
+	# trace <- mcmc(ans$trace)
+	# xyplot(x=trace)
+	# plotESSBurn(ans$trace,longest.burn.in=1200)
 
+	# burn_until <- 800
+	# xyplot(x=trace, start=burn_until)
+	# acfplot(x=trace, start=burn_until, lag.max=100)
+	# keep_every <- 10
+	# xyplot(x=trace, start=burn_until, thin=keep_every)
+	
+	# trace <- mcmc(burnAndThin(ans$trace, burn=burn_until, thin=keep_every))
 
-	fit <- plotPosteriorFit(trace_trimed,SEIT2L,sample.size=300,plot=FALSE)
-	# save fit
-	saveRDS(fit,file.path(dir_rds,paste0("fit.rds")))
+	# densityplot(x=trace)
+	# summary(trace)
+
+	# levelplot(x=trace)
+	# crosscorr.plot(x=trace)
+
+	# effectiveSize(trace)
+	# HPDinterval(trace)
+	# rejectionRate(trace)
 
 }
 
@@ -123,7 +134,7 @@ run_MCMC_deterministic <- function() {
 
 main <- function() {
 
-	library(fitcourseR)
+	library(fitR)
 
 	run_MCMC_deterministic()
 

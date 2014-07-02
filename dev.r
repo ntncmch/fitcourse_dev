@@ -27,11 +27,17 @@ start_me <- function() {
 
 }
 
+install_fitR <- function() {
+
+	install.github("sbfnk/fitR")
+
+}
+
 
 create_data <- function() {
 
-	FluTdC1971 <- readRDS("/Users/Tonton/edu/Fit_course/git_material/dataset/TdC_1971.rds")
-	# FluTdC1971 <- rename(FluTdC1971,c("day"="time","incidence"="Inc"))[c("time","Inc")]
+	FluTdC1971 <- readRDS("/Users/Tonton/edu/Fit_course/dev/dataset/TdC_1971.rds")
+	FluTdC1971 <- rename(FluTdC1971,c("day"="time","incidence"="obs"))#[c("time","Inc")]
 # str(FluTdC1971)
 	save(FluTdC1971,file=file.path(dir_pkg,"data","FluTdC1971.rdata"))
 
@@ -42,9 +48,9 @@ simulate_SEITL <- function(SEITL) {
 	# create
 	SEITL <-  createSEITLmodelTDC(deter=FALSE,FALSE)
 
-	# simulateTraj model
+	# simulate model
 	tmp <- simulateModelReplicates(SEITL,0:60,50)
-	plotModelTraj(SEITL,tmp,state=c("I"),alpha=0.25,plot=TRUE)
+	plotTraj(SEITL,tmp,state=c("I"),alpha=0.25,plot=TRUE)
 
 }
 
@@ -57,10 +63,10 @@ SEITL_smc <- function() {
 	# names(test_par) <- names(getParameterValue(SEITL$parameters))
 	# SEITL$parameters <- revalueParameters(SEITL$parameters,revalue=test_par)
 
-	system.time(smc <- bootstrapParticleFilter(SEITL,10))
+	system.time(smc <- particleFilter(SEITL,10))
 
 
-	smc <- bootstrapParticleFilter(SEITL,10)
+	smc <- particleFilter(SEITL,10)
 	print(smc$logLikelihood)
 	plotSMC(smc,SEITL,0.1)
 
@@ -69,7 +75,7 @@ SEITL_smc <- function() {
 	names(np) <- np
 	tmp <- ldply(np,function(nParticles) {
 		ll <- llply(1:10,function(x) {
-			smc <- bootstrapParticleFilter(fitmodel=SEITL,nParticles=nParticles,n.cores=NULL)
+			smc <- particleFilter(fitmodel=SEITL,nParticles=nParticles,n.cores=NULL)
 			return(smc$logLikePoint)
 		},.progress="text")
 		ll <- unlist(ll)
@@ -80,7 +86,7 @@ SEITL_smc <- function() {
 
 	# profiling
 
-	pf_ex <- profr(bootstrapParticleFilter(SEITL,100),0.02)
+	pf_ex <- profr(particleFilter(SEITL,100),0.02)
 	summary(pf_ex)
 	plot(pf_ex)
 	head(pf_ex)
@@ -141,36 +147,22 @@ test_parallel <- function() {
 	library(parallel)
 	library(doParallel)
 
-	SEITL <- SEITL_createModelTdC(deterministic=FALSE, verbose=TRUE) 
+	SEITL <- SEITL_createFitmodel(deterministic=FALSE, verbose=TRUE) 
 
-	system.time(x <- bootstrapParticleFilter(fitmodel= SEITL, n.particles=1000, progress = TRUE, n.cores = 1))
-	system.time(xp <- bootstrapParticleFilter(fitmodel= SEITL, n.particles=1000, progress = TRUE, n.cores = NULL))
-	system.time(xp2 <- bootstrapParticleFilter(fitmodel= SEITL, n.particles=1000, progress = TRUE, n.cores = 4))
-
-}
-
-test_simu <- function() {
-
-	SEITL <- SEITL_createModelTdC(deterministic=FALSE, verbose=TRUE) 
-
-	times <- c(0,SEITL$data$time)
-	
-	traj <- SEITL$SEIT2L(theta=SEITL$theta,state.init=SEITL$initialise.state(SEITL$theta),times=times)
-
-	traj.obs <- SEITL$generateObservation(traj,SEITL$theta)
-
-	SEITL_distanceABC(traj.obs, SEITL$data)
+	system.time(x <- particleFilter(fitmodel= SEITL, n.particles=1000, progress = TRUE, n.cores = 1))
+	system.time(xp <- particleFilter(fitmodel= SEITL, n.particles=1000, progress = TRUE, n.cores = NULL))
+	system.time(xp2 <- particleFilter(fitmodel= SEITL, n.particles=1000, progress = TRUE, n.cores = 4))
 
 }
 
 test_mcmcMH <- function() {
 
 
-	SEITL <- SEITL_createModelTdC(deterministic=TRUE, verbose=TRUE) 
+	SEITL <- SEITL_createFitmodel(deterministic=TRUE, verbose=TRUE) 
 
 	theta.init <- SEITL$theta
 
-	ans <- mcmcMH(target=targetPosterior, target.args=list(logPrior=SEITL$logPrior, marginal.logLikePoint= marginalLogLikelihoodDeterministic, marginal.logLikePoint.args=list(fitmodel=SEITL)), theta.init=theta.init, gaussian.proposal=SEITL$gaussian.proposal, n.iterations=100, adapt.size.start=10, adapt.size.cooling=0.99, adapt.shape.start=10, print.info.every=200)
+	ans <- mcmcMH(target=posteriorDensity, target.args=list(logPrior=SEITL$logPrior, marginal.logLikePoint= margLogLikeDeter, marginal.logLikePoint.args=list(fitmodel=SEITL)), theta.init=theta.init, gaussian.proposal=SEITL$gaussian.proposal, n.iterations=100, adapt.size.start=10, adapt.size.cooling=0.99, adapt.shape.start=10, print.info.every=200)
 	
 	trace_thined <- burnAndThin(ans$trace)
 
@@ -178,16 +170,48 @@ test_mcmcMH <- function() {
 	plotTrace(trace_thined)
 	plotPosteriorDistribution(trace_thined)
 
-	SEITL_sto <- SEITL_createModelTdC(deterministic=FALSE, verbose=TRUE) 
+	SEITL_sto <- SEITL_createFitmodel(deterministic=FALSE, verbose=TRUE) 
 
 	fit <- plotPosteriorFit(trace_thined,SEITL_sto,sample.size=300)
 
 
 }
 
+
+test_plot <- function() {
+
+	SEIT2L_deter <- SEIT2L_createFitmodel("deterministic")
+	SEIT2L_sto <- SEIT2L_createFitmodel("stochastic")
+	list_model <- list(SEITL_deter,SEITL_sto)
+
+	theta <- c("R0"=10, "D.lat"=2 , "D.inf"=3, "alpha"=0.5, "D.imm"=15, "rho"=0.7)
+	state.init <- c("S"=280,"E"=0,"I"=2,"T"=0,"L"=4,"Inc"=0)
+	data("FluTdC1971",envir = environment())
+	times <- c(0,FluTdC1971$time)
+
+	traj <- genObsTraj(SEITL_deter, theta, state.init, times)
+
+
+
+	traj <- simulateModelReplicates(fitmodel=SEITL_sto,theta=theta, state.init=state.init, times=times, n=200, observation=TRUE)
+
+	plotTraj(traj,data=FluTdC1971,summary=TRUE,alpha=0.2)
+
+	theta.guess3 <- c("R0"=10, "D.lat"=2 , "D.inf"=2, "alpha"=0.5, "D.imm"=15, "rho"=0.70)
+	state.init.guess3 <- c("S"=282,"E"=0,"I"=2,"T"=0,"L"=0,"Inc"=0)
+
+	plotFit(SEITL_sto,theta.guess3,state.init.guess3,data=FluTdC1971,summary=TRUE, n=100, p.extinct=TRUE)
+
+	theta.guess3 <- c("R0"=10, "D.lat"=2 , "D.inf"=2, "alpha"=0.5, "D.imm"=15, "rho"=0.70)
+	state.init.guess3 <- c("S"=282,"E"=0,"I"=2,"T1"=0,"T2"=0,"L"=0,"Inc"=0)
+
+	plotFit(SEIT2L_sto,theta.guess3,state.init.guess3,data=FluTdC1971,summary=TRUE, n=100, p.extinct=TRUE)
+
+}
+
 test_ABC <- function() {
 
-	SEITL <- SEITL_createModelTdC(deterministic=TRUE, verbose=TRUE) 
+	SEITL <- SEITL_createFitmodel(deterministic=TRUE, verbose=TRUE) 
 
 	theta.init <- SEITL$theta
 
@@ -218,7 +242,7 @@ step_by_step <- function() {
 	# define parameters using the fitparam class
 	R0 <- fitparam(name="R0",value=3)
 
-	InfectiousPeriod <- fitparam(name="IP",value=3)
+	InfectiousPeriod <- fitparam(name="D.inf",value=3)
 
 	ReportingRate <- fitparam(name="rho",value=0.7)
 
@@ -276,7 +300,7 @@ analyse_mcmc_SEITL_deter <- function() {
 	trace <- readRDS(file.path(dir_MCMC,run,"rds","trace_b=0.1_thin=10000.rds"))
 	fitmodel <- readRDS(file.path(dir_MCMC,run,"rds","SEITL.rds"))
 
-	SEIT2L <- SEIT2L_createModelTdC(deterministic=TRUE, verbose=TRUE) 
+	SEIT2L <- SEIT2L_createFitmodel(deterministic=TRUE, verbose=TRUE) 
 
 	plotPosteriorFit(trace, fitmodel=SEIT2L,posterior.median=TRUE ,summary=TRUE, sample.size = 100, plot=TRUE)
 	quartz()
@@ -288,72 +312,53 @@ analyse_mcmc_SEITL_deter <- function() {
 
 generate_knitr <- function() {
 
-	library(knitr)
+	require(knitr)
+	require(plyr)
+	
 	wd <- getwd()
-	setwd(dir_md)
+	setwd(dir_knitr)
 	# files <- c("README","fitcourseR","first_fitmodel","data_likelihood","mcmc","play_with_seitl","smc","smc_solution","smc_example")
-	# files <- c("play_with_seitl")
+	files <- c("play_with_seitl")
 	# files <- c("smc","smc_solution","smc_example")
-	files <- c("ABC","ABC_example")
+	# files <- c("play")
+	# files <- c("ABC","ABC_example")
 	# files <- c("README")
 	all_input <- file.path(dir_knitr,paste0(files,".Rmd"))
-	all_output <- file.path(dir_md,paste0(files,".md"))
-	for(i in seq_along(all_input)){
-		knit(all_input[i],all_output[i])	
-	}
+	
+	l_ply(all_input,knit)
+	
 	setwd(wd)
 }
-
-test_bootstrap <- function() {
-
-	SEITL <- SEITL_createModelTdC(deterministic=FALSE, verbose=FALSE) 
-	
-	n.replicates <- 100
-
-	x_ll <- x_ll_20
-	x_20 <- x
-	x_ll_20  <- x_ll
-
-	x_50 <- x
-	x_ll_50 <- x_ll
-
-
-	x <- lapply(1:n.replicates,bootstrapParticleFilter,fitmodel=SEITL,n.particles=10)
-	
-	x_ll <- sapply(x,function(smc) {smc$logLikePoint})
-	
-	hist(x_ll)
-
-	var(x_ll)
-
-	var(x_ll[is.finite(x_ll)])
-
-}
-
 
 dev <- function(){
 
 	# create R package
 	# create(dir_pkg)
 	# start_me()
-	document(dir_pkg)
+	document(dir_pkg,clean=FALSE)
 	# load_all(dir_pkg)
+	# test(dir_pkg)
 	# test(dir_pkg,"classe")
-	check(dir_pkg, check_dir=dir_dev, cleanup =FALSE)		
+	# test(dir_pkg,"simu")
+	# test(dir_pkg,"logLike")
+	# test(dir_pkg,"mcmc")
+	# check(dir_pkg, check_dir=dir_dev, cleanup =FALSE)		
 
 	# dev_help("fitmodel")
 	# dev_help("FluTdC1971")
-	# dev_help("bootstrapParticleFilter")
+	# dev_help("particleFilter")
 	# dev_help("logLikelihood_stochastic")
 	# dev_help("mcmcMH")
 	# dev_help("setParameterValues")
 	# dev_help("plotThetaFit")
 	# dev_help("plotPosteriorFit")
+	# dev_help("SEITL_createFitmodel")
 
 }
 
 main <- function() {
 
+	# start_me()
 	# dev_mode()
 	dev()
 	# test_bootstrap()
