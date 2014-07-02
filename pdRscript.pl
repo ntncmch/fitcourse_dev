@@ -10,12 +10,12 @@ my $scriptDir="$HOME/fitcourse/dev";
 
 my @Rscript_list= ("run_on_cluster");
 
-my @node_list= ("10","11","15");
+my @node_list= ("10","11");
 
 my $exe= "$HOME/bin/R";
 my $uni= "vanilla";
 my $mem= "2*1024";
-my $replicate= "4";
+my $replicate= "8";
 
 #request reserved machines
 my $my_requirements="";

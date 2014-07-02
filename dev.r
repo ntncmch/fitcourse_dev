@@ -44,6 +44,7 @@ create_data <- function() {
 }
 
 
+
 simulate_SEITL <- function(SEITL) {
 	# create
 	SEITL <-  createSEITLmodelTDC(deter=FALSE,FALSE)
@@ -358,7 +359,7 @@ dev <- function(){
 
 main <- function() {
 
-	# start_me()
+	start_me()
 	# dev_mode()
 	dev()
 	# test_bootstrap()
