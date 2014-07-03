@@ -119,8 +119,8 @@ analyse_smc <- function() {
 
 	n_particles <- 12*seq(4,30,4)
 	name <- paste0(n_particles,"_particles.rds")
-	dir_rds <- ""
-	list_ans <- lapply(name,function(x) {readRDS(file.path(dir_rds,x)})
+	dir_rds <- "/Users/Tonton/edu/Fit_course/dev/dataset/test_smc/rds"
+	list_ans <- lapply(name,function(x) {readRDS(file.path(dir_rds,x))})
 
 
 
