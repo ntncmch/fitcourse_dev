@@ -92,7 +92,6 @@ test_smc <- function(n_iter=10, n_particles=c(120,240)) {
 
 	i_process <- as.numeric(Sys.getenv("ARG1")) + 1
 
-	# 7 values
 	n_particles <- n_particles[i_process]
 
 	example(SEIT2L_sto)
@@ -103,7 +102,7 @@ test_smc <- function(n_iter=10, n_particles=c(120,240)) {
 	start_smc  <- Sys.time()
 	sample_ll <- vector("numeric",length=n_iter)
 	for(i in seq_along(sample_ll)){
-		sample_ll[i] <- margLogLikeSto(fitmodel=SEIT2L_sto, theta=theta, state.init=state.init, data=FluTdC1971, n.particles=n_particles, n.cores=12)
+		sample_ll[i] <- margLogLikeSto(fitmodel=SEIT2L_sto, theta=theta, state.init=state.init, data=FluTdC1971, n.particles=n_particles, n.cores=NULL)
 	}
 
 	end_smc  <- Sys.time()
@@ -111,11 +110,11 @@ test_smc <- function(n_iter=10, n_particles=c(120,240)) {
 
 	sample_finite_ll <- sample_ll[is.finite(sample_ll)]
 
-	ans <- list(ll=sample_ll, stat=c(mean=mean(sample_finite_ll), sd=sd(sample_finite_ll), prop_Inf=length(sample_finite_ll)/length(sample_ll), time=time.estimation))
+	ans <- list(ll=sample_ll, stat=c(mean=mean(sample_finite_ll), sd=sd(sample_finite_ll), prop_finite=length(sample_finite_ll)/length(sample_ll)),time=time.estimation)
 
 	print(ans)
 
-	set_dir("test_smc2")	
+	set_dir("test_smc")	
 	name <- paste0(n_particles,"_particles.rds")
 	saveRDS(ans,file.path(dir_rds,name))
 
@@ -294,11 +293,10 @@ main <- function() {
 	library(fitR)
 
 	# run_MCMC()
-	# 12*seq(34,88,8)
-	# n_particles <- 12*seq(4,25,4)
-	n_particles <- c(120,240)
+	# 
+	n_particles <- 12*c(seq(4,30,4),seq(34,88,8))
 
-	test_smc(n_iter=3,n_particles=n_particles)
+	test_smc(n_iter=100,n_particles=n_particles)
 }
 
 main()
