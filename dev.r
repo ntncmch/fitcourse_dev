@@ -43,6 +43,65 @@ create_data <- function() {
 
 }
 
+create_trace_mcmc_deter <- function() {
+
+	df_set <- 	expand.grid(theta=1:2,priorInfo=c(FALSE,TRUE),SEIT2L=c(FALSE,TRUE),n_iteration=c(5000,100000))
+	df_set$set <- 1:nrow(df_set)
+	dir_name <- "/Users/Tonton/edu/Fit_course/dev/dataset/mcmc_deter"
+	dir_rds <- file.path(dir_name,"rds")
+	dir_fig <- file.path(dir_name,"figures")
+
+	adapt_size_start <- 100 
+	adapt_size_cooling <- 0.999
+	adapt_shape_start <- 200
+
+	# long trace
+	df_prel <- subset(df_set,n_iteration== 5000 & !priorInfo & theta==1)
+
+	list_trace <- dlply(df_long,c("theta","priorInfo","SEIT2L","n_iteration"),function(df) {
+
+		analysis <- paste0("mcmc_",ifelse(df$SEIT2L,"SEIT2L","SEITL"),"_deter_",ifelse(df$priorInfo,"info","unif"),"Prior_n=",df$n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_set=",df$set,".rds")
+
+		ans <- readRDS(file.path(dir_rds,analysis))
+
+		return(ans)
+	})
+	
+	name <- unique(paste0("mcmc_",ifelse(df_long$SEIT2L,"SEIT2L","SEITL")))
+	
+	names(list_trace) <- name
+
+	attach(list_trace)
+
+	save(list=name,file=file.path(dir_pkg,"data","mcmc_TdC_deter_shortRun.rdata"))
+
+	
+#	data("mcmc_TdC_deter_longRun",envir = environment())
+# 	ls()
+	names(mcmc_SEITL_theta1)
+
+	# long trace
+	df_long <- subset(df_set,n_iteration>5000)
+
+	list_trace <- dlply(df_long,c("theta","priorInfo","SEIT2L","n_iteration"),function(df) {
+
+		analysis <- paste0("mcmc_",ifelse(df$SEIT2L,"SEIT2L","SEITL"),"_deter_",ifelse(df$priorInfo,"info","unif"),"Prior_n=",df$n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_set=",df$set,".rds")
+
+		ans <- readRDS(file.path(dir_rds,analysis))
+
+		return(ans)
+	})
+	
+	name <- unique(paste0("mcmc_",ifelse(df_long$SEIT2L,"SEIT2L","SEITL"),ifelse(df_long$priorInfo,"_infoPrior_","_"),"theta",df_long$theta))
+	
+	names(list_trace) <- name
+
+	attach(list_trace)
+
+	save(list=name,file=file.path(dir_pkg,"data","mcmc_TdC_deter_longRun.rdata"))
+
+
+}
 
 
 simulate_SEITL <- function(SEITL) {
@@ -138,6 +197,21 @@ test_update <- function() {
 
 	print(var(x$a))
 	print(var(x$b))
+
+}
+
+test_smc <- function() {
+
+	example(SEITL_sto)
+
+	theta <- c("R0"=10, "D.lat"=2 , "D.inf"=3, "alpha"=0.5, "D.imm"=15, "rho"=0.7)
+	state.init <- c("S"=280,"E"=0,"I"=2,"T"=0,"L"=4,"Inc"=0)
+	data("FluTdC1971",envir = environment())
+	data <- FluTdC1971[1:5,]
+
+	x <- margLogLikeSto(fitmodel=SEITL, theta=theta, state.init=state.init, data=data, n.particles=10)
+	expect_true(is.numeric(x))
+
 
 }
 
@@ -361,9 +435,9 @@ main <- function() {
 
 	# start_me()
 	# dev_mode()
-	# dev()
+	dev()
 	# test_bootstrap()
-	generate_knitr()
+	# generate_knitr()
 	# analyse_mcmc_SEITL_deter()
 	# create_data()
 	# document(dir_pkg)

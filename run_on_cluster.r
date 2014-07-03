@@ -63,21 +63,59 @@ build_posterior <- function(stochastic=FALSE, SEIT2L=FALSE, priorInfo=FALSE) {
 		}
 	}
 
-# trajLogLike(fitmodel=my_fitmodel, theta=theta.init, state.init=state.init, data=FluTdC1971)
-# my_fitmodel$logPrior(theta.init)
+	if(stochastic){
+		my_posterior <- function(theta){
 
-	my_posterior <- function(theta){
+			return(logPosterior(fitmodel=my_fitmodel, theta=theta, state.init=state.init, data=FluTdC1971, margLogLike = margLogLikeSto, n.particles=240, n.cores=12))
 
-		return(logPosterior(fitmodel=my_fitmodel, theta=theta, state.init=state.init, data=FluTdC1971, margLogLike = trajLogLike))
+		}
+	} else {
+		my_posterior <- function(theta){
 
+			return(logPosterior(fitmodel=my_fitmodel, theta=theta, state.init=state.init, data=FluTdC1971, margLogLike = trajLogLike))
+
+		}		
 	}
 
 	return(my_posterior)
 }
 
+test_smc <- function(n_iter=10) {
+
+	library(fitR)
+
+	theta <- c("R0"=6.4, "D.lat"=1.3 , "D.inf"=2.8, "alpha"=0.49, "D.imm"=10, "rho"=0.67)
+
+	i_process <- as.numeric(Sys.getenv("ARG1")) + 1
+
+	# 7 values
+	n_particles <- 12*seq(4,30,4)[i_process]
+
+	example(SEIT2L_sto)
+
+	state.init <- c("S"=279,"E"=0,"I"=2,"T1"=3,"T2"=0,"L"=0,"Inc"=0)
+	data(FluTdC1971)
+
+	start_smc  <- Sys.time()
+	sample_ll <- vector("numeric",length=n_iter)
+	for(i in seq_along(sample_ll)){
+		sample_ll[i] <- margLogLikeSto(fitmodel=SEIT2L_sto, theta=theta, state.init=state.init, data=FluTdC1971, n.particles=n_particles, n.cores=NULL)
+	}
+
+	end_smc  <- Sys.time()
+	suppressMessages(time.estimation <- round(as.period((end_smc-start_smc)*10000/length(sample_ll))))		
+
+	ans <- list(ll=sample_ll, mean=mean(sample_ll, na.rm=TRUE), sd=sd(sample_ll, na.rm=TRUE), prop_NA=sum(is.na(sample_ll))/length(sample_ll), time=time.estimation)
+
+	set_dir("test_smc")	
+	name <- paste0(n_particles,"_particles.rds")
+	saveRDS(ans,file.path(dir_rds,name))
+
+}
 
 
-run_MCMC_deterministic <- function() {
+
+run_MCMC <- function(stochastic=FALSE) {
 
 
 
@@ -89,7 +127,11 @@ run_MCMC_deterministic <- function() {
 	# get env for replicate variable
 	i_process <- as.numeric(Sys.getenv("ARG1")) + 1
 
-	df_set <- expand.grid(theta=1:2,priorInfo=c(FALSE,TRUE),SEIT2L=c(FALSE,TRUE),n_iteration=c(5000,100000))
+	if(stochastic){
+		df_set <- expand.grid(theta=1,priorInfo=TRUE,SEIT2L=c(FALSE,TRUE),n_iteration=10000)
+	} else {
+		df_set <- expand.grid(theta=1:2,priorInfo=c(FALSE,TRUE),SEIT2L=c(FALSE,TRUE),n_iteration=c(5000,100000))		
+	}
 
 	df_set <- df_set[i_process,]
 
@@ -97,16 +139,32 @@ run_MCMC_deterministic <- function() {
 	print_info_every <- n_iteration/1000
 
 
-	theta <- list(
-		theta1=c("R0"=2, "D.lat"=2 , "D.inf"=2, "alpha"=0.8, "D.imm"=16, "rho"=0.85),
-		theta2=c("R0"=20, "D.lat"=2 , "D.inf"=2, "alpha"=0.1, "D.imm"=8, "rho"=0.3)
-		)
+	if(stochastic){
 
-	theta.init <- theta[[df_set$theta]]
-	
-	targetPosterior <- build_posterior(sto=FALSE,SEIT2L=df_set$SEIT2L,priorInfo=df_set$priorInfo)
+		theta.init <- c("R0"=6.4, "D.lat"=1.3 , "D.inf"=2.8, "alpha"=0.49, "D.imm"=10, "rho"=0.67)
 
-	proposal.sd <- c("R0"=1, "D.lat"=0.5 , "D.inf"=0.5, "alpha"=0.1, "D.imm"=2, "rho"=0.1)
+	} else {
+
+		theta <- list(
+			theta1=c("R0"=2, "D.lat"=2 , "D.inf"=2, "alpha"=0.8, "D.imm"=16, "rho"=0.85),
+			theta2=c("R0"=20, "D.lat"=2 , "D.inf"=2, "alpha"=0.1, "D.imm"=8, "rho"=0.3)
+			)
+
+		theta.init <- theta[[df_set$theta]]
+
+	}
+
+	targetPosterior <- build_posterior(stochastic=stochastic,SEIT2L=df_set$SEIT2L,priorInfo=df_set$priorInfo)
+
+	if(stochastic){
+		data(mcmc_TdC_deter_longRun)
+		covmat <- mcmc_SEIT2L_infoPrior_theta1$covmat.empirical		
+		proposal.sd <- NULL
+	} else {
+		proposal.sd <- c("R0"=1, "D.lat"=0.5 , "D.inf"=0.5, "alpha"=0.1, "D.imm"=2, "rho"=0.1)	
+		covmat <- NULL	
+	}
+
 	lower <- c("R0"=0, "D.lat"=0 , "D.inf"=0, "alpha"=0, "D.imm"=0, "rho"=0)
 	upper <- c("R0"=Inf, "D.lat"=Inf , "D.inf"=Inf, "alpha"=1, "D.imm"=Inf, "rho"=1)
 
@@ -116,11 +174,11 @@ run_MCMC_deterministic <- function() {
 	# set seed
 	set.seed(i_process * seed_mult)
 
-	analysis <- paste0(ifelse(df_set$SEIT2L,"SEIT2L","SEITL"),"_deter_",ifelse(df_set$priorInfo,"info","unif"),"Prior_n=",n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_set=",i_process)
-	dir_name <- "mcmc_deter"
+	analysis <- paste0(ifelse(df_set$SEIT2L,"SEIT2L","SEITL"),"_",ifelse(stochastic,"sto","deter"),"_",ifelse(df_set$priorInfo,"info","unif"),"Prior_n=",n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_set=",i_process)
+	dir_name <- ifelse(stochastic,"mcmc_sto","mcmc_deter")
 	set_dir(dir_name)
 
-	ans <- mcmcMH(target=targetPosterior, theta.init=theta.init, proposal.sd=proposal.sd, limits=list(lower=lower,upper=upper), n.iterations=n_iteration, adapt.size.start=adapt_size_start, adapt.size.cooling=adapt_size_cooling, adapt.shape.start=adapt_shape_start, print.info.every=print_info_every)
+	ans <- mcmcMH(target=targetPosterior, theta.init=theta.init, proposal.sd=proposal.sd, covmat=covmat, limits=list(lower=lower,upper=upper), n.iterations=n_iteration, adapt.size.start=adapt_size_start, adapt.size.cooling=adapt_size_cooling, adapt.shape.start=adapt_shape_start, print.info.every=print_info_every)
 
 	# saveRDS(ans,paste0("/Users/Tonton/edu/Fit_course/dev/dataset/",analysis,".rds"))
 
@@ -153,12 +211,73 @@ run_MCMC_deterministic <- function() {
 
 }
 
+analyse_mcmc <- function() {
+
+
+	df_set <- expand.grid(theta=1:2,priorInfo=c(FALSE,TRUE),SEIT2L=c(FALSE,TRUE),n_iteration=c(5000,100000))
+	dir_name <- "/Users/Tonton/edu/Fit_course/dev/dataset/mcmc_deter"
+	dir_rds <- file.path(dir_name,"rds")
+	dir_fig <- file.path(dir_name,"figures")
+
+	adapt_size_start <- 100 
+	adapt_size_cooling <- 0.999
+	adapt_shape_start <- 200
+
+
+	i <- 15:16
+	df <- df_set[i,]
+	analysis <- paste0("mcmc_",ifelse(df$SEIT2L,"SEIT2L","SEITL"),"_deter_",ifelse(df$priorInfo,"info","unif"),"Prior_n=",df$n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_set=",i,".rds")
+
+	ans <- lapply(analysis,function(x) {readRDS(file.path(dir_rds,x))})
+
+	library(fitR)
+
+	trace <- lapply(ans,function(x) {mcmc(x$trace)})
+	# trace <- mcmc(ans[[1]]$trace)
+
+	trace <- mcmc.list(trace)
+	effectiveSize(trace)
+	rejectionRate(trace)
+	xyplot(x=trace)
+	plotESSBurn(ans[[2]]$trace[1:5000,],longest.burn.in=1000)
+
+	burn_until <- 1000
+	xyplot(x=trace, start=burn_until)
+	acfplot(x=trace, start=burn_until, lag.max=100)
+	keep_every <- 50
+	xyplot(x=trace, start=burn_until, thin=keep_every)
+	xyplot(x=trace,thin=keep_every)
+	
+	trace2 <- burnAndThin(trace, burn=burn_until, thin=keep_every)
+	effectiveSize(trace2)
+	densityplot(x=trace2)
+	summary(trace2)
+
+	levelplot(x=trace2)
+	crosscorr.plot(x=trace)
+
+	densityplot(x=trace2)
+
+	# 
+	# HPDinterval(trace)
+	# 
+
+
+	
+
+	
+
+}
+
+
+
 main <- function() {
 
 	library(fitR)
 
-	run_MCMC_deterministic()
+	# run_MCMC()
 
+	test_smc()
 }
 
 main()
