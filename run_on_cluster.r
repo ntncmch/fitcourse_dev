@@ -89,7 +89,7 @@ test_smc <- function(n_iter=10) {
 	i_process <- as.numeric(Sys.getenv("ARG1")) + 1
 
 	# 7 values
-	n_particles <- 12*seq(4,30,4)[i_process]
+	n_particles <- 12*seq(34,88,8)[i_process]
 
 	example(SEIT2L_sto)
 
@@ -99,7 +99,7 @@ test_smc <- function(n_iter=10) {
 	start_smc  <- Sys.time()
 	sample_ll <- vector("numeric",length=n_iter)
 	for(i in seq_along(sample_ll)){
-		sample_ll[i] <- margLogLikeSto(fitmodel=SEIT2L_sto, theta=theta, state.init=state.init, data=FluTdC1971, n.particles=n_particles, n.cores=NULL)
+		sample_ll[i] <- margLogLikeSto(fitmodel=SEIT2L_sto, theta=theta, state.init=state.init, data=FluTdC1971, n.particles=n_particles, n.cores=12)
 	}
 
 	end_smc  <- Sys.time()
@@ -107,13 +107,24 @@ test_smc <- function(n_iter=10) {
 
 	ans <- list(ll=sample_ll, mean=mean(sample_ll, na.rm=TRUE), sd=sd(sample_ll, na.rm=TRUE), prop_NA=sum(is.na(sample_ll))/length(sample_ll), time=time.estimation)
 
-	set_dir("test_smc")	
+	print(ans)
+
+	set_dir("test_smc2")	
 	name <- paste0(n_particles,"_particles.rds")
 	saveRDS(ans,file.path(dir_rds,name))
 
 }
 
+analyse_smc <- function() {
 
+	n_particles <- 12*seq(4,30,4)
+	name <- paste0(n_particles,"_particles.rds")
+	dir_rds <- ""
+	list_ans <- lapply(name,function(x) {readRDS(file.path(dir_rds,x)})
+
+
+
+}
 
 run_MCMC <- function(stochastic=FALSE) {
 
