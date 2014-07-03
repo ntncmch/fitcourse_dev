@@ -80,8 +80,12 @@ build_posterior <- function(stochastic=FALSE, SEIT2L=FALSE, priorInfo=FALSE) {
 	return(my_posterior)
 }
 
-test_smc <- function(n_iter=10) {
+test_smc <- function(n_iter=10, n_particles=c(120,240)) {
 
+	n.cores <- detectCores()
+	cat("SMC runs on ",n.cores," cores\n")
+	flush.console()
+	
 	library(fitR)
 
 	theta <- c("R0"=6.4, "D.lat"=1.3 , "D.inf"=2.8, "alpha"=0.49, "D.imm"=10, "rho"=0.67)
@@ -89,7 +93,7 @@ test_smc <- function(n_iter=10) {
 	i_process <- as.numeric(Sys.getenv("ARG1")) + 1
 
 	# 7 values
-	n_particles <- 12*seq(34,88,8)[i_process]
+	n_particles <- n_particles[i_process]
 
 	example(SEIT2L_sto)
 
@@ -105,7 +109,9 @@ test_smc <- function(n_iter=10) {
 	end_smc  <- Sys.time()
 	suppressMessages(time.estimation <- round(as.period((end_smc-start_smc)*10000/length(sample_ll))))		
 
-	ans <- list(ll=sample_ll, mean=mean(sample_ll, na.rm=TRUE), sd=sd(sample_ll, na.rm=TRUE), prop_NA=sum(is.na(sample_ll))/length(sample_ll), time=time.estimation)
+	sample_finite_ll <- sample_ll[is.finite(sample_ll)]
+
+	ans <- list(ll=sample_ll, stat=c(mean=mean(sample_finite_ll), sd=sd(sample_finite_ll), prop_Inf=length(sample_finite_ll)/length(sample_ll), time=time.estimation))
 
 	print(ans)
 
@@ -117,11 +123,12 @@ test_smc <- function(n_iter=10) {
 
 analyse_smc <- function() {
 
-	n_particles <- 12*seq(4,30,4)
+	n_particles <- 12*seq(4,25,4)
 	name <- paste0(n_particles,"_particles.rds")
 	dir_rds <- "/Users/Tonton/edu/Fit_course/dev/dataset/test_smc/rds"
 	list_ans <- lapply(name,function(x) {readRDS(file.path(dir_rds,x))})
-
+	names(list_ans) <- n_particles
+	ldply(list_ans,function(x) {data.frame(mean=x$mean,sd)})
 
 
 }
@@ -287,8 +294,11 @@ main <- function() {
 	library(fitR)
 
 	# run_MCMC()
+	# 12*seq(34,88,8)
+	# n_particles <- 12*seq(4,25,4)
+	n_particles <- c(120,240)
 
-	test_smc()
+	test_smc(n_iter=3,n_particles=n_particles)
 }
 
 main()
