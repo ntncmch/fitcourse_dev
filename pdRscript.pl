@@ -6,7 +6,7 @@ my $HOME="/users/ecologie/camacho";
 
 my $Condor_job_identifier="pdRscript";
 # my $jobDir="$HOME/fitcourse/test_smc_SEIT2L";
-my $jobDir="$HOME/fitcourse/mcmc_sto_SEIT2L_2";
+my $jobDir="$HOME/fitcourse/mcmc_sto_SEIT2L";
 my $scriptDir="$HOME/fitcourse/dev";
 
 my @Rscript_list= ("run_on_cluster");

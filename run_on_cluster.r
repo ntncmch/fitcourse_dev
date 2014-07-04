@@ -17,7 +17,7 @@ set_dir <- function(dir_name) {
 
 }
 
-build_posterior <- function(stochastic=FALSE, SEIT2L=FALSE, priorInfo=FALSE) {
+build_posterior <- function(stochastic=FALSE, SEIT2L=FALSE, priorInfo=FALSE, n_particles=48) {
 
 	library(fitR)
 
@@ -66,7 +66,7 @@ build_posterior <- function(stochastic=FALSE, SEIT2L=FALSE, priorInfo=FALSE) {
 	if(stochastic){
 		my_posterior <- function(theta){
 
-			return(logPosterior(fitmodel=my_fitmodel, theta=theta, state.init=state.init, data=FluTdC1971, margLogLike = margLogLikeSto, n.particles=408, n.cores=NULL))
+			return(logPosterior(fitmodel=my_fitmodel, theta=theta, state.init=state.init, data=FluTdC1971, margLogLike = margLogLikeSto, n.particles=n_particles, n.cores=NULL))
 
 		}
 	} else {
@@ -169,7 +169,7 @@ run_MCMC <- function(stochastic=FALSE) {
 	}	
 
 	n_iteration <- df_set$n_iteration
-	print_info_every <- n_iteration/1000
+	print_info_every <- 1 #n_iteration/1000
 
 
 	if(stochastic){
@@ -195,7 +195,7 @@ run_MCMC <- function(stochastic=FALSE) {
 
 	}
 
-	targetPosterior <- build_posterior(stochastic=stochastic,SEIT2L=df_set$SEIT2L,priorInfo=df_set$priorInfo)
+	targetPosterior <- build_posterior(stochastic=stochastic,SEIT2L=df_set$SEIT2L,priorInfo=df_set$priorInfo, n_particles=48)
 
 	if(stochastic){
 		data(mcmc_TdC_deter_longRun)
@@ -211,7 +211,7 @@ run_MCMC <- function(stochastic=FALSE) {
 
 	
 	analysis <- paste0(ifelse(df_set$SEIT2L,"SEIT2L","SEITL"),"_",ifelse(stochastic,"sto","deter"),"_",ifelse(df_set$priorInfo,"info","unif"),"Prior_n=",n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_set=",i_process)
-	dir_name <- ifelse(stochastic,"mcmc_sto_2","mcmc_deter")
+	dir_name <- ifelse(stochastic,"mcmc_sto","mcmc_deter")
 	set_dir(dir_name)
 
 
