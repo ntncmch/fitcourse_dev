@@ -195,7 +195,7 @@ run_MCMC <- function(stochastic=FALSE) {
 
 	}
 
-	targetPosterior <- build_posterior(stochastic=stochastic,SEIT2L=df_set$SEIT2L,priorInfo=df_set$priorInfo, n_particles=48)
+	targetPosterior <- build_posterior(stochastic=stochastic,SEIT2L=df_set$SEIT2L,priorInfo=df_set$priorInfo, n_particles=408)
 
 	if(stochastic){
 		data(mcmc_TdC_deter_longRun)
