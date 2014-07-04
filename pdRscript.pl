@@ -5,18 +5,18 @@
 my $HOME="/users/ecologie/camacho";
 
 my $Condor_job_identifier="pdRscript";
-my $jobDir="$HOME/fitcourse/test_smc_SEIT2L";
-# my $jobDir="$HOME/fitcourse/mcmc_deter_SEITL";
+# my $jobDir="$HOME/fitcourse/test_smc_SEIT2L";
+my $jobDir="$HOME/fitcourse/mcmc_sto_SEIT2L";
 my $scriptDir="$HOME/fitcourse/dev";
 
 my @Rscript_list= ("run_on_cluster");
 
-my @node_list= ("2","3","5","6","8","9","10","11","14");
+my @node_list= ("8","9","10","11","12");
 
 my $exe= "$HOME/bin/R";
 my $uni= "vanilla";
 my $mem= "2*1024";
-my $replicate= "14";
+my $replicate= "5";
 
 #request reserved machines
 my $my_requirements="";

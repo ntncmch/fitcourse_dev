@@ -66,7 +66,7 @@ build_posterior <- function(stochastic=FALSE, SEIT2L=FALSE, priorInfo=FALSE) {
 	if(stochastic){
 		my_posterior <- function(theta){
 
-			return(logPosterior(fitmodel=my_fitmodel, theta=theta, state.init=state.init, data=FluTdC1971, margLogLike = margLogLikeSto, n.particles=240, n.cores=12))
+			return(logPosterior(fitmodel=my_fitmodel, theta=theta, state.init=state.init, data=FluTdC1971, margLogLike = margLogLikeSto, n.particles=408, n.cores=NULL))
 
 		}
 	} else {
@@ -120,32 +120,49 @@ test_smc <- function(n_iter=10, n_particles=c(120,240)) {
 
 }
 
-analyse_smc <- function() {
+analyse_smc <- function(n_particles) {
 
-	n_particles <- 12*seq(4,25,4)
 	name <- paste0(n_particles,"_particles.rds")
 	dir_rds <- "/Users/Tonton/edu/Fit_course/dev/dataset/test_smc/rds"
 	list_ans <- lapply(name,function(x) {readRDS(file.path(dir_rds,x))})
 	names(list_ans) <- n_particles
-	ldply(list_ans,function(x) {data.frame(mean=x$mean,sd)})
+	# stat <- ldply(list_ans,function(x) {as.data.frame(x[c("mean","sd")])})
+	stat <- ldply(list_ans,function(x) {t(data.frame(x$stat))},.id="n_particles")
+	time <- ldply(list_ans,function(x) {data.frame(time10000=as.numeric(as.duration(x[["time"]])))},.id="n_particles")
+	df_bench <- join(stat,time)
+	df_bench <- mutate(df_bench,n_particles=as.numeric(as.character(n_particles)),time10000_day=time10000/3600/24)
 
+	df_plot <- melt(df_bench,id.vars="n_particles")
+	ggplot(df_plot, aes(x=n_particles,y=value))+facet_wrap(~variable,scales="free_y")+geom_line()+geom_vline(xintercept=408,col="red")
 
 }
 
 run_MCMC <- function(stochastic=FALSE) {
 
 
-
-	adapt_size_start <- 100 
-	adapt_size_cooling <- 0.999
-	adapt_shape_start <- 200
+	if(stochastic){
+		adapt_size_start <- 50 
+		adapt_size_cooling <- 0.99
+		adapt_shape_start <- 100
+	} else {
+		adapt_size_start <- 100 
+		adapt_size_cooling <- 0.999
+		adapt_shape_start <- 200	
+	}
+	
 
 
 	# get env for replicate variable
 	i_process <- as.numeric(Sys.getenv("ARG1")) + 1
+	# set seed multiplicator (time difference in second since 01-12-2012) so that simulations at different time can be combined (different parameter)
+	seed_mult <- as.numeric(Sys.time() - ISOdate(2012, 12, 1)) * 24 * 3600
+
+	# set seed
+	set.seed(i_process * seed_mult)
+
 
 	if(stochastic){
-		df_set <- expand.grid(theta=1,priorInfo=TRUE,SEIT2L=c(FALSE,TRUE),n_iteration=10000)
+		df_set <- expand.grid(theta=1,priorInfo=TRUE,SEIT2L=TRUE,n_iteration=3000)
 	} else {
 		df_set <- expand.grid(theta=1:2,priorInfo=c(FALSE,TRUE),SEIT2L=c(FALSE,TRUE),n_iteration=c(5000,100000))		
 	}
@@ -158,8 +175,17 @@ run_MCMC <- function(stochastic=FALSE) {
 
 	if(stochastic){
 
-		theta.init <- c("R0"=6.4, "D.lat"=1.3 , "D.inf"=2.8, "alpha"=0.49, "D.imm"=10, "rho"=0.67)
+		theta.init <- c(
+			"R0"=rnorm(1,mean=6.4,sd=1.52579/10),
+			"D.lat"=rnorm(1,mean=1.3,sd=0.27554/10),
+			"D.inf"=rnorm(1,mean=2.8,sd=0.80270/10), 
+			"alpha"=rnorm(1,mean=0.49,sd=0.04039/10), 
+			"D.imm"=rnorm(1,mean=10,sd=1.11616/10), 
+			"rho"=rnorm(1,mean=0.67,sd=0.04671/10)
+			)
 
+		print(theta.init)
+		
 	} else {
 
 		theta <- list(
@@ -185,15 +211,12 @@ run_MCMC <- function(stochastic=FALSE) {
 	lower <- c("R0"=0, "D.lat"=0 , "D.inf"=0, "alpha"=0, "D.imm"=0, "rho"=0)
 	upper <- c("R0"=Inf, "D.lat"=Inf , "D.inf"=Inf, "alpha"=1, "D.imm"=Inf, "rho"=1)
 
-	# set seed multiplicator (time difference in second since 01-12-2012) so that simulations at different time can be combined (different parameter)
-	seed_mult <- as.numeric(Sys.time() - ISOdate(2012, 12, 1)) * 24 * 3600
-
-	# set seed
-	set.seed(i_process * seed_mult)
-
+	
 	analysis <- paste0(ifelse(df_set$SEIT2L,"SEIT2L","SEITL"),"_",ifelse(stochastic,"sto","deter"),"_",ifelse(df_set$priorInfo,"info","unif"),"Prior_n=",n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_set=",i_process)
 	dir_name <- ifelse(stochastic,"mcmc_sto","mcmc_deter")
 	set_dir(dir_name)
+
+
 
 	ans <- mcmcMH(target=targetPosterior, theta.init=theta.init, proposal.sd=proposal.sd, covmat=covmat, limits=list(lower=lower,upper=upper), n.iterations=n_iteration, adapt.size.start=adapt_size_start, adapt.size.cooling=adapt_size_cooling, adapt.shape.start=adapt_shape_start, print.info.every=print_info_every)
 
@@ -292,11 +315,11 @@ main <- function() {
 
 	library(fitR)
 
-	# run_MCMC()
-	# 
-	n_particles <- 12*c(seq(4,30,4),seq(34,88,8))
+	# n_particles <- 12*c(seq(4,30,4),seq(34,88,8))
+	# test_smc(n_iter=100,n_particles=n_particles)
 
-	test_smc(n_iter=100,n_particles=n_particles)
+	run_MCMC(stochastic=TRUE)
+	
 }
 
 main()
