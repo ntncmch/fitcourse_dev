@@ -29,7 +29,7 @@ start_me <- function() {
 
 install_fitR <- function() {
 
-	install.github("sbfnk/fitR")
+	install_github("sbfnk/fitR")
 
 }
 
@@ -435,6 +435,8 @@ main <- function() {
 
 	# start_me()
 	# dev_mode()
+	# install_fitR()
+
 	dev()
 	# test_bootstrap()
 	# generate_knitr()

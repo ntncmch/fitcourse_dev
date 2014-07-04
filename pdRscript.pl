@@ -6,17 +6,17 @@ my $HOME="/users/ecologie/camacho";
 
 my $Condor_job_identifier="pdRscript";
 # my $jobDir="$HOME/fitcourse/test_smc_SEIT2L";
-my $jobDir="$HOME/fitcourse/mcmc_sto_SEIT2L";
+my $jobDir="$HOME/fitcourse/mcmc_sto_SEIT2L_2";
 my $scriptDir="$HOME/fitcourse/dev";
 
 my @Rscript_list= ("run_on_cluster");
 
-my @node_list= ("1","2","3","5","6","8","9","10","11","12");
+my @node_list= ("01","02","03","05","06","08","09","10","11","12");
 
 my $exe= "$HOME/bin/R";
 my $uni= "vanilla";
 my $mem= "1*1024";
-my $replicate= "5";
+my $replicate= "2";
 
 #request reserved machines
 my $my_requirements="";

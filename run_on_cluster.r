@@ -211,7 +211,7 @@ run_MCMC <- function(stochastic=FALSE) {
 
 	
 	analysis <- paste0(ifelse(df_set$SEIT2L,"SEIT2L","SEITL"),"_",ifelse(stochastic,"sto","deter"),"_",ifelse(df_set$priorInfo,"info","unif"),"Prior_n=",n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_set=",i_process)
-	dir_name <- ifelse(stochastic,"mcmc_sto","mcmc_deter")
+	dir_name <- ifelse(stochastic,"mcmc_sto_2","mcmc_deter")
 	set_dir(dir_name)
 
 
@@ -267,15 +267,24 @@ analyse_mcmc <- function() {
 	adapt_shape_start <- 200
 
 
-	i <- 15:16
+	i <- 13:14
 	df <- df_set[i,]
 	analysis <- paste0("mcmc_",ifelse(df$SEIT2L,"SEIT2L","SEITL"),"_deter_",ifelse(df$priorInfo,"info","unif"),"Prior_n=",df$n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_set=",i,".rds")
 
-	ans <- lapply(analysis,function(x) {readRDS(file.path(dir_rds,x))})
+	if(length(analysis)==1){
+
+		ans <- readRDS(file.path(dir_rds,analysis))
+		trace <- mcmc(ans$trace)
+
+	} else {
+
+		ans <- lapply(analysis,function(x) {readRDS(file.path(dir_rds,x))})
+		trace <- lapply(ans,function(x) {mcmc(x$trace)})
+
+	}
 
 	library(fitR)
 
-	trace <- lapply(ans,function(x) {mcmc(x$trace)})
 	# trace <- mcmc(ans[[1]]$trace)
 
 	trace <- mcmc.list(trace)
