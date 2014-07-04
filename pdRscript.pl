@@ -11,7 +11,7 @@ my $scriptDir="$HOME/fitcourse/dev";
 
 my @Rscript_list= ("run_on_cluster");
 
-my @node_list= ("01","02","03","05","06","08","09","10","11","12");
+my @node_list= ("02","03","05","06","08","09","10","11","12");
 
 my $exe= "$HOME/bin/R";
 my $uni= "vanilla";
