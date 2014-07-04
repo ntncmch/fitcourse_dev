@@ -211,7 +211,7 @@ run_MCMC <- function(stochastic=FALSE) {
 
 	
 	analysis <- paste0(ifelse(df_set$SEIT2L,"SEIT2L","SEITL"),"_",ifelse(stochastic,"sto","deter"),"_",ifelse(df_set$priorInfo,"info","unif"),"Prior_n=",n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_set=",i_process)
-	dir_name <- ifelse(stochastic,"mcmc_sto","mcmc_deter")
+	dir_name <- ifelse(stochastic,"mcmc_sto_2","mcmc_deter")
 	set_dir(dir_name)
 
 
