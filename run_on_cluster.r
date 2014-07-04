@@ -165,9 +165,8 @@ run_MCMC <- function(stochastic=FALSE) {
 		df_set <- expand.grid(theta=1,priorInfo=TRUE,SEIT2L=TRUE,n_iteration=3000)
 	} else {
 		df_set <- expand.grid(theta=1:2,priorInfo=c(FALSE,TRUE),SEIT2L=c(FALSE,TRUE),n_iteration=c(5000,100000))		
-	}
-
-	df_set <- df_set[i_process,]
+		df_set <- df_set[i_process,]
+	}	
 
 	n_iteration <- df_set$n_iteration
 	print_info_every <- n_iteration/1000
@@ -184,8 +183,7 @@ run_MCMC <- function(stochastic=FALSE) {
 			"rho"=rnorm(1,mean=0.67,sd=0.04671/10)
 			)
 
-		print(theta.init)
-		
+
 	} else {
 
 		theta <- list(
@@ -216,6 +214,11 @@ run_MCMC <- function(stochastic=FALSE) {
 	dir_name <- ifelse(stochastic,"mcmc_sto","mcmc_deter")
 	set_dir(dir_name)
 
+
+	n.cores <- detectCores()
+	cat("SMC runs on ",n.cores," cores\n")
+	flush.console()
+	print(theta.init)
 
 
 	ans <- mcmcMH(target=targetPosterior, theta.init=theta.init, proposal.sd=proposal.sd, covmat=covmat, limits=list(lower=lower,upper=upper), n.iterations=n_iteration, adapt.size.start=adapt_size_start, adapt.size.cooling=adapt_size_cooling, adapt.shape.start=adapt_shape_start, print.info.every=print_info_every)
