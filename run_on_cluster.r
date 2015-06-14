@@ -72,7 +72,7 @@ build_posterior <- function(stochastic=FALSE, SEIT4L=FALSE, priorInfo=FALSE, n_p
 	} else {
 		my_posterior <- function(theta){
 
-			return(logPosterior(fitmodel=my_fitmodel, theta=theta, init.state=init.state, data=FluTdC1971, margLogLike = dTrajObs))
+			return(logPosterior(fitmodel=my_fitmodel, theta=theta, init.state=init.state, data=FluTdC1971, margLogLike = dTrajObs, log=TRUE))
 
 		}		
 	}
@@ -197,6 +197,21 @@ run_MCMC <- function(stochastic=FALSE) {
 			)
 
 		init.theta <- theta[[df_set$theta]]
+
+	}
+
+	if(0){
+
+		stochastic <- FALSE
+		SEIT4L <- TRUE
+		priorInfo <- TRUE
+		n_particles <- 48
+		targetPosterior <- build_posterior(stochastic=stochastic,SEIT4L=SEIT4L,priorInfo=priorInfo, n_particles=48)
+		targetPosterior(theta1)
+
+		data(SEIT4L_deter)
+		init1 <- c("S"=279,"E"=0,"I"=2,"T1"=3,"T2"=0,"T3"=0,"T4"=0,"L"=0,"Inc"=0)
+		dTrajObs(SEIT4L_deter, theta=theta1, init.state=init1, data=FluTdC1971, log=TRUE)
 
 	}
 
