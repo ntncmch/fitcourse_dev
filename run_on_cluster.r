@@ -47,7 +47,7 @@ build_posterior <- function(stochastic=FALSE, SEIT4L=FALSE, priorInfo=FALSE, n_p
 	
 	if(priorInfo){
 
-		my_fitmodel$logPrior <- function(theta) {
+		my_fitmodel$dprior <- function(theta) {
 
 			require(truncnorm)
 
@@ -135,7 +135,7 @@ analyse_smc <- function(n_particles) {
 	df_bench$prop_finite <- NULL
 
 	
-		
+
 	df_plot <- melt(df_bench,id.vars="n_particles")
 	df_plot <- mutate(df_plot, variable=revalue(variable,c(time_10000iter_day="time 10000 iter (in days)", prop_depleted="prop. sample with particle depletion")))
 	ggplot(df_plot, aes(x=n_particles,y=value))+facet_wrap(~variable,scales="free_y")+geom_line()+geom_vline(xintercept=408,col="red")
@@ -174,7 +174,7 @@ run_MCMC <- function(stochastic=FALSE) {
 	}	
 
 	n_iteration <- df_set$n_iteration
-	print_info_every <- 1 #n_iteration/1000
+	print_info_every <- n_iteration/1000 #1 for sto
 
 
 	if(stochastic){
@@ -219,12 +219,14 @@ run_MCMC <- function(stochastic=FALSE) {
 	dir_name <- ifelse(stochastic,"mcmc_sto_bad","mcmc_deter")
 	set_dir(dir_name)
 
-
-	n.cores <- detectCores()
-	cat("SMC runs on ",n.cores," cores\n")
-	flush.console()
+	if(stochastic){
+		library(parallel)
+		n.cores <- detectCores()
+		cat("SMC runs on ",n.cores," cores\n")
+		flush.console()
+	}
+	
 	print(theta.init)
-
 
 	ans <- mcmcMH(target=targetPosterior, theta.init=theta.init, proposal.sd=proposal.sd, covmat=covmat, limits=list(lower=lower,upper=upper), n.iterations=n_iteration, adapt.size.start=adapt_size_start, adapt.size.cooling=adapt_size_cooling, adapt.shape.start=adapt_shape_start, print.info.every=print_info_every)
 
