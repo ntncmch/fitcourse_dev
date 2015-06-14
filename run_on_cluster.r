@@ -17,7 +17,7 @@ set_dir <- function(dir_name) {
 
 }
 
-build_posterior <- function(stochastic=FALSE, SEIT2L=FALSE, priorInfo=FALSE, n_particles=48) {
+build_posterior <- function(stochastic=FALSE, SEIT4L=FALSE, priorInfo=FALSE, n_particles=48) {
 
 	library(fitR)
 
@@ -25,14 +25,14 @@ build_posterior <- function(stochastic=FALSE, SEIT2L=FALSE, priorInfo=FALSE, n_p
 	data("FluTdC1971")
 
 	# simulator
-	if(SEIT2L){
-		state.init <- c("S"=279,"E"=0,"I"=2,"T1"=3,"T2"=0,"L"=0,"Inc"=0)
+	if(SEIT4L){
+		state.init <- c("S"=279,"E"=0,"I"=2,"T1"=3,"T2"=0,"T3"=0,"T4"=0,"L"=0,"Inc"=0)
 		if(stochastic){
-			example(SEIT2L_sto)
-			my_fitmodel <- SEIT2L_sto
+			data(SEIT4L_stoch)
+			my_fitmodel <- SEIT4L_sto
 		}else{
-			example(SEIT2L_deter)
-			my_fitmodel <- SEIT2L_deter
+			data(SEIT4L_deter)
+			my_fitmodel <- SEIT4L_deter
 		}	
 	} else {
 		state.init <- c("S"=279,"E"=0,"I"=2,"T"=3,"L"=0,"Inc"=0)
@@ -52,9 +52,9 @@ build_posterior <- function(stochastic=FALSE, SEIT2L=FALSE, priorInfo=FALSE, n_p
 			require(truncnorm)
 
 			log.prior.R0 <- dunif(theta[["R0"]], min = 1, max = 50, log = TRUE)
-			log.prior.latent.period <- log(dtruncnorm(theta[["D.lat"]], a = 0, b = Inf, mean = 2, sd = 1))
-			log.prior.infectious.period <- log(dtruncnorm(theta[["D.inf"]], a = 0, b = Inf, mean = 2, sd = 1))
-			log.prior.temporary.immune.period <- dunif(theta[["D.imm"]], min = 0, max = 50, log = TRUE)
+			log.prior.latent.period <- log(dtruncnorm(theta[["D_lat"]], a = 0, b = Inf, mean = 2, sd = 1))
+			log.prior.infectious.period <- log(dtruncnorm(theta[["D_inf"]], a = 0, b = Inf, mean = 2, sd = 1))
+			log.prior.temporary.immune.period <- dunif(theta[["D_imm"]], min = 0, max = 50, log = TRUE)
 			log.prior.probability.long.term.immunity <- dunif(theta[["alpha"]], min = 0, max = 1, log = TRUE)
 			log.prior.reporting.rate <- dunif(theta[["rho"]], min = 0, max = 1, log = TRUE)
 
@@ -88,7 +88,7 @@ test_smc <- function(n_iter=10, n_particles=c(120,240)) {
 	
 	library(fitR)
 
-	theta <- c("R0"=6.4, "D.lat"=1.3 , "D.inf"=2.8, "alpha"=0.49, "D.imm"=10, "rho"=0.67)
+	theta <- c("R0"=6.4, "D_lat"=1.3 , "D_inf"=2.8, "alpha"=0.49, "D_imm"=10, "rho"=0.67)
 
 	i_process <- as.numeric(Sys.getenv("ARG1")) + 1
 
@@ -130,9 +130,14 @@ analyse_smc <- function(n_particles) {
 	stat <- ldply(list_ans,function(x) {t(data.frame(x$stat))},.id="n_particles")
 	time <- ldply(list_ans,function(x) {data.frame(time10000=as.numeric(as.duration(x[["time"]])))},.id="n_particles")
 	df_bench <- join(stat,time)
-	df_bench <- mutate(df_bench,n_particles=as.numeric(as.character(n_particles)),time10000_day=time10000/3600/24)
+	df_bench <- mutate(df_bench,n_particles=as.numeric(as.character(n_particles)),time_10000iter_day=time10000/3600/24, prop_depleted=1-prop_finite)
+	df_bench$time10000 <- NULL
+	df_bench$prop_finite <- NULL
 
+	
+		
 	df_plot <- melt(df_bench,id.vars="n_particles")
+	df_plot <- mutate(df_plot, variable=revalue(variable,c(time_10000iter_day="time 10000 iter (in days)", prop_depleted="prop. sample with particle depletion")))
 	ggplot(df_plot, aes(x=n_particles,y=value))+facet_wrap(~variable,scales="free_y")+geom_line()+geom_vline(xintercept=408,col="red")
 
 }
@@ -162,9 +167,9 @@ run_MCMC <- function(stochastic=FALSE) {
 
 
 	if(stochastic){
-		df_set <- expand.grid(theta=1,priorInfo=TRUE,SEIT2L=TRUE,n_iteration=3000)
+		df_set <- expand.grid(theta=1,priorInfo=TRUE,SEIT4L=TRUE,n_iteration=3000)
 	} else {
-		df_set <- expand.grid(theta=1:2,priorInfo=c(FALSE,TRUE),SEIT2L=c(FALSE,TRUE),n_iteration=c(5000,100000))		
+		df_set <- expand.grid(theta=1:2,priorInfo=c(FALSE,TRUE),SEIT4L=c(TRUE),n_iteration=c(5000,100000))		
 		df_set <- df_set[i_process,]
 	}	
 
@@ -176,10 +181,10 @@ run_MCMC <- function(stochastic=FALSE) {
 
 		theta.init <- c(
 			"R0"=rnorm(1,mean=6.4,sd=1.52579/10),
-			"D.lat"=rnorm(1,mean=1.3,sd=0.27554/10),
-			"D.inf"=rnorm(1,mean=2.8,sd=0.80270/10), 
+			"D_lat"=rnorm(1,mean=1.3,sd=0.27554/10),
+			"D_inf"=rnorm(1,mean=2.8,sd=0.80270/10), 
 			"alpha"=rnorm(1,mean=0.49,sd=0.04039/10), 
-			"D.imm"=rnorm(1,mean=10,sd=1.11616/10), 
+			"D_imm"=rnorm(1,mean=10,sd=1.11616/10), 
 			"rho"=rnorm(1,mean=0.67,sd=0.04671/10)
 			)
 
@@ -187,30 +192,30 @@ run_MCMC <- function(stochastic=FALSE) {
 	} else {
 
 		theta <- list(
-			theta1=c("R0"=2, "D.lat"=2 , "D.inf"=2, "alpha"=0.8, "D.imm"=16, "rho"=0.85),
-			theta2=c("R0"=20, "D.lat"=2 , "D.inf"=2, "alpha"=0.1, "D.imm"=8, "rho"=0.3)
+			theta1=c("R0"=2, "D_lat"=2 , "D_inf"=2, "alpha"=0.8, "D_imm"=16, "rho"=0.85),
+			theta2=c("R0"=20, "D_lat"=2 , "D_inf"=2, "alpha"=0.1, "D_imm"=8, "rho"=0.3)
 			)
 
 		theta.init <- theta[[df_set$theta]]
 
 	}
 
-	targetPosterior <- build_posterior(stochastic=stochastic,SEIT2L=df_set$SEIT2L,priorInfo=df_set$priorInfo, n_particles=48)
+	targetPosterior <- build_posterior(stochastic=stochastic,SEIT4L=df_set$SEIT4L,priorInfo=df_set$priorInfo, n_particles=48)
 
 	if(stochastic){
 		data(mcmc_TdC_deter_longRun)
 		covmat <- mcmc_SEIT2L_infoPrior_theta1$covmat.empirical		
 		proposal.sd <- NULL
 	} else {
-		proposal.sd <- c("R0"=1, "D.lat"=0.5 , "D.inf"=0.5, "alpha"=0.1, "D.imm"=2, "rho"=0.1)	
+		proposal.sd <- c("R0"=1, "D_lat"=0.5 , "D_inf"=0.5, "alpha"=0.1, "D_imm"=2, "rho"=0.1)	
 		covmat <- NULL	
 	}
 
-	lower <- c("R0"=0, "D.lat"=0 , "D.inf"=0, "alpha"=0, "D.imm"=0, "rho"=0)
-	upper <- c("R0"=Inf, "D.lat"=Inf , "D.inf"=Inf, "alpha"=1, "D.imm"=Inf, "rho"=1)
+	lower <- c("R0"=0, "D_lat"=0 , "D_inf"=0, "alpha"=0, "D_imm"=0, "rho"=0)
+	upper <- c("R0"=Inf, "D_lat"=Inf , "D_inf"=Inf, "alpha"=1, "D_imm"=Inf, "rho"=1)
 
 	
-	analysis <- paste0(ifelse(df_set$SEIT2L,"SEIT2L","SEITL"),"_",ifelse(stochastic,"sto","deter"),"_",ifelse(df_set$priorInfo,"info","unif"),"Prior_n=",n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_set=",i_process)
+	analysis <- paste0(ifelse(df_set$SEIT4L,"SEIT4L","SEITL"),"_",ifelse(stochastic,"sto","deter"),"_",ifelse(df_set$priorInfo,"info","unif"),"Prior_n=",n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_set=",i_process)
 	dir_name <- ifelse(stochastic,"mcmc_sto_bad","mcmc_deter")
 	set_dir(dir_name)
 
@@ -297,7 +302,7 @@ analyse_mcmc <- function() {
 	xyplot(x=trace, start=burn_until)
 	acfplot(x=trace, start=burn_until, lag.max=100)
 	keep_every <- 50
-	xyplot(x=trace, start=burn_until, thin=keep_every)
+	xyplot(x=trace[[1]], start=burn_until, thin=keep_every)
 	xyplot(x=trace,thin=keep_every)
 	
 	trace2 <- burnAndThin(trace, burn=burn_until, thin=keep_every)
@@ -330,7 +335,7 @@ main <- function() {
 	# n_particles <- 12*c(seq(4,30,4),seq(34,88,8))
 	# test_smc(n_iter=100,n_particles=n_particles)
 
-	run_MCMC(stochastic=TRUE)
+	run_MCMC(stochastic=FALSE)
 	
 }
 
