@@ -26,7 +26,7 @@ build_posterior <- function(stochastic=FALSE, SEIT4L=FALSE, priorInfo=FALSE, n_p
 
 	# simulator
 	if(SEIT4L){
-		state.init <- c("S"=279,"E"=0,"I"=2,"T1"=3,"T2"=0,"T3"=0,"T4"=0,"L"=0,"Inc"=0)
+		init.state <- c("S"=279,"E"=0,"I"=2,"T1"=3,"T2"=0,"T3"=0,"T4"=0,"L"=0,"Inc"=0)
 		if(stochastic){
 			data(SEIT4L_stoch)
 			my_fitmodel <- SEIT4L_sto
@@ -35,7 +35,7 @@ build_posterior <- function(stochastic=FALSE, SEIT4L=FALSE, priorInfo=FALSE, n_p
 			my_fitmodel <- SEIT4L_deter
 		}	
 	} else {
-		state.init <- c("S"=279,"E"=0,"I"=2,"T"=3,"L"=0,"Inc"=0)
+		init.state <- c("S"=279,"E"=0,"I"=2,"T"=3,"L"=0,"Inc"=0)
 		if(stochastic){
 			example(SEITL_sto)
 			my_fitmodel <- SEITL_sto
@@ -66,13 +66,13 @@ build_posterior <- function(stochastic=FALSE, SEIT4L=FALSE, priorInfo=FALSE, n_p
 	if(stochastic){
 		my_posterior <- function(theta){
 
-			return(logPosterior(fitmodel=my_fitmodel, theta=theta, state.init=state.init, data=FluTdC1971, margLogLike = margLogLikeSto, n.particles=n_particles, n.cores=NULL))
+			return(logPosterior(fitmodel=my_fitmodel, theta=theta, init.state=init.state, data=FluTdC1971, margLogLike = margLogLikeSto, n.particles=n_particles, n.cores=NULL))
 
 		}
 	} else {
 		my_posterior <- function(theta){
 
-			return(logPosterior(fitmodel=my_fitmodel, theta=theta, state.init=state.init, data=FluTdC1971, margLogLike = dTrajObs))
+			return(logPosterior(fitmodel=my_fitmodel, theta=theta, init.state=init.state, data=FluTdC1971, margLogLike = dTrajObs))
 
 		}		
 	}
@@ -96,13 +96,13 @@ test_smc <- function(n_iter=10, n_particles=c(120,240)) {
 
 	example(SEIT2L_sto)
 
-	state.init <- c("S"=279,"E"=0,"I"=2,"T1"=3,"T2"=0,"L"=0,"Inc"=0)
+	init.state <- c("S"=279,"E"=0,"I"=2,"T1"=3,"T2"=0,"L"=0,"Inc"=0)
 	data(FluTdC1971)
 
 	start_smc  <- Sys.time()
 	sample_ll <- vector("numeric",length=n_iter)
 	for(i in seq_along(sample_ll)){
-		sample_ll[i] <- margLogLikeSto(fitmodel=SEIT2L_sto, theta=theta, state.init=state.init, data=FluTdC1971, n.particles=n_particles, n.cores=NULL)
+		sample_ll[i] <- margLogLikeSto(fitmodel=SEIT2L_sto, theta=theta, init.state=init.state, data=FluTdC1971, n.particles=n_particles, n.cores=NULL)
 	}
 
 	end_smc  <- Sys.time()
