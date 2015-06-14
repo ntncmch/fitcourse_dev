@@ -72,7 +72,7 @@ build_posterior <- function(stochastic=FALSE, SEIT4L=FALSE, priorInfo=FALSE, n_p
 	} else {
 		my_posterior <- function(theta){
 
-			return(logPosterior(fitmodel=my_fitmodel, theta=theta, state.init=state.init, data=FluTdC1971, margLogLike = trajLogLike))
+			return(logPosterior(fitmodel=my_fitmodel, theta=theta, state.init=state.init, data=FluTdC1971, margLogLike = dTrajObs))
 
 		}		
 	}
