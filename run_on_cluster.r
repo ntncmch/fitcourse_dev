@@ -179,7 +179,7 @@ run_MCMC <- function(stochastic=FALSE) {
 
 	if(stochastic){
 
-		theta.init <- c(
+		init.theta <- c(
 			"R0"=rnorm(1,mean=6.4,sd=1.52579/10),
 			"D_lat"=rnorm(1,mean=1.3,sd=0.27554/10),
 			"D_inf"=rnorm(1,mean=2.8,sd=0.80270/10), 
@@ -196,7 +196,7 @@ run_MCMC <- function(stochastic=FALSE) {
 			theta2=c("R0"=20, "D_lat"=2 , "D_inf"=2, "alpha"=0.1, "D_imm"=8, "rho"=0.3)
 			)
 
-		theta.init <- theta[[df_set$theta]]
+		init.theta <- theta[[df_set$theta]]
 
 	}
 
@@ -226,9 +226,9 @@ run_MCMC <- function(stochastic=FALSE) {
 		flush.console()
 	}
 	
-	print(theta.init)
+	print(init.theta)
 
-	ans <- mcmcMH(target=targetPosterior, theta.init=theta.init, proposal.sd=proposal.sd, covmat=covmat, limits=list(lower=lower,upper=upper), n.iterations=n_iteration, adapt.size.start=adapt_size_start, adapt.size.cooling=adapt_size_cooling, adapt.shape.start=adapt_shape_start, print.info.every=print_info_every)
+	ans <- mcmcMH(target=targetPosterior, init.theta=init.theta, proposal.sd=proposal.sd, covmat=covmat, limits=list(lower=lower,upper=upper), n.iterations=n_iteration, adapt.size.start=adapt_size_start, adapt.size.cooling=adapt_size_cooling, adapt.shape.start=adapt_shape_start, print.info.every=print_info_every)
 
 	# saveRDS(ans,paste0("/Users/Tonton/edu/Fit_course/dev/dataset/",analysis,".rds"))
 
