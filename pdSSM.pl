@@ -9,14 +9,14 @@ my $HOME=$ENV{HOME};
 
 my $Condor_job_identifier="SSM";
 my $model="SEIT4L";
-my $analysis="pmcmc_48";
+my $analysis="pmcmc";
 
 my $Rscript="$HOME/fitcourse/dev/ssm.r";
 
 my $exe= "$HOME/fitcourse/dev/run_ssm.sh";
 my $uni= "vanilla";
 my $mem= "1*1024";
-my $replicate= "1";
+my $replicate= "5";
 
 # for LHS generate as many points as replicate
 $ENV{SSM_N_LHS} = "$replicate";
