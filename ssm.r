@@ -47,8 +47,8 @@ data(FluTdC1971)
 dataset <- FluTdC1971 %>% select(-time) %>% rename(Inc_obs = obs)
 
 # the model will be created in the default temporary directory. Change the path to "wherever/you/want".
-dir_model <- path.expand("~/edu/Fit_course/dev/ssm")
-# dir_model <- path.expand("~/fitcourse/dev/ssm")
+# dir_model <- path.expand("~/edu/Fit_course/dev/ssm")
+dir_model <- path.expand("~/fitcourse/dev/ssm")
 
 my_ssm <- new_ssm(
 	model_path=file.path(dir_model,"SEIT4L_ssm"),
