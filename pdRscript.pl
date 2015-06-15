@@ -7,18 +7,19 @@ my $HOME="/users/ecologie/camacho";
 my $Condor_job_identifier="pdRscript";
 # my $jobDir="$HOME/fitcourse/test_smc_SEIT2L";
 # my $jobDir="$HOME/fitcourse/mcmc_sto_SEIT2L_bad";
-my $jobDir="$HOME/fitcourse/mcmc_deter_SEIT4L";
+# my $jobDir="$HOME/fitcourse/mcmc_deter_SEIT4L";
+my $jobDir="$HOME/fitcourse/mcmc_sto_SEIT4L_48";
 my $scriptDir="$HOME/fitcourse/dev";
 
 my @Rscript_list= ("run_on_cluster");
 
 # my @node_list= ("02","03","05","06","08","09","10","11","12","13","14","15","16");
-my @node_list= ("14");
+my @node_list= ("07","08","09","11","12");
 
 my $exe= "$HOME/bin/R";
 my $uni= "vanilla";
 my $mem= "1*1024";
-my $replicate= "8";
+my $replicate= "5";
 
 #request reserved machines
 my $my_requirements="";
@@ -48,7 +49,7 @@ foreach $Rscript (@Rscript_list)
     print Condor_SCRIPT "executable = $exe\n";
     print Condor_SCRIPT "universe = $uni\n";
     #print Condor_SCRIPT "request_memory = $mem\n";
-    print Condor_SCRIPT "+RequiresWholeMachine = False\n";
+    print Condor_SCRIPT "+RequiresWholeMachine = True\n";
     print Condor_SCRIPT "Requirements = $my_requirements\n";
     #print Condor_SCRIPT "Requirements = machine == \"ecoevo13.ecoevo.biologie.ens.fr\"\n";
     print Condor_SCRIPT "getenv = True\n";

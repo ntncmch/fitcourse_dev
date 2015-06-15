@@ -17,7 +17,7 @@ set_dir <- function(dir_name) {
 
 }
 
-build_posterior <- function(stochastic=FALSE, SEIT4L=FALSE, priorInfo=FALSE, n_particles=48) {
+build_posterior <- function(stochastic=FALSE, model=c("SEITL","SEIT2L","SEIT4L"), priorInfo=FALSE, n_particles=48) {
 
 	library(fitR)
 
@@ -25,7 +25,7 @@ build_posterior <- function(stochastic=FALSE, SEIT4L=FALSE, priorInfo=FALSE, n_p
 	data("FluTdC1971")
 
 	# simulator
-	if(SEIT4L){
+	if(model == "SEIT4L"){
 		init.state <- c("S"=279,"E"=0,"I"=2,"T1"=3,"T2"=0,"T3"=0,"T4"=0,"L"=0,"Inc"=0)
 		if(stochastic){
 			data(SEIT4L_stoch)
@@ -34,15 +34,28 @@ build_posterior <- function(stochastic=FALSE, SEIT4L=FALSE, priorInfo=FALSE, n_p
 			data(SEIT4L_deter)
 			my_fitmodel <- SEIT4L_deter
 		}	
+	} else if (model == "SEIT2L"){
+
+		init.state <- c("S"=279,"E"=0,"I"=2,"T1"=3,"T2"=0,"L"=0,"Inc"=0)
+		if(stochastic){
+			data(SEIT2L_sto)
+			my_fitmodel <- SEIT2L_sto
+		}else{
+			data(SEIT2L_deter)
+			my_fitmodel <- SEIT2L_deter
+		}	
+
 	} else {
+
 		init.state <- c("S"=279,"E"=0,"I"=2,"T"=3,"L"=0,"Inc"=0)
 		if(stochastic){
-			example(SEITL_sto)
+			data(SEITL_sto)
 			my_fitmodel <- SEITL_sto
 		}else{
-			example(SEITL_deter)
+			data(SEITL_deter)
 			my_fitmodel <- SEITL_deter
 		}	
+
 	}
 	
 	if(priorInfo){
@@ -167,15 +180,18 @@ run_MCMC <- function(stochastic=FALSE) {
 
 
 	if(stochastic){
-		df_set <- expand.grid(theta=1,priorInfo=TRUE,SEIT4L=TRUE,n_iteration=3000)
+		df_set <- expand.grid(theta=1,priorInfo=TRUE,model="SEIT4L",n_iteration=3000, n_particles=48)
+		# df_set <- df_set[i_process,]
+
 	} else {
-		df_set <- expand.grid(theta=1:2,priorInfo=c(FALSE,TRUE),SEIT4L=c(TRUE),n_iteration=c(5000,100000))		
+		df_set <- expand.grid(theta=1:2,priorInfo=c(FALSE,TRUE),model=c("SEITL","SEIT2L","SEIT4L"),n_iteration=c(5000,100000))		
 		df_set <- df_set[i_process,]
 	}	
 
 	n_iteration <- df_set$n_iteration
-	print_info_every <- n_iteration/1000 #1 for sto
 
+
+	print_info_every <- switch(stochastic, 1, n_iteration/1000)
 
 	if(stochastic){
 
@@ -200,26 +216,11 @@ run_MCMC <- function(stochastic=FALSE) {
 
 	}
 
-	if(0){
-
-		stochastic <- FALSE
-		SEIT4L <- TRUE
-		priorInfo <- TRUE
-		n_particles <- 48
-		targetPosterior <- build_posterior(stochastic=stochastic,SEIT4L=SEIT4L,priorInfo=priorInfo, n_particles=48)
-		targetPosterior(theta1)
-
-		data(SEIT4L_deter)
-		init1 <- c("S"=279,"E"=0,"I"=2,"T1"=3,"T2"=0,"T3"=0,"T4"=0,"L"=0,"Inc"=0)
-		dTrajObs(SEIT4L_deter, theta=theta1, init.state=init1, data=FluTdC1971, log=TRUE)
-
-	}
-
-	targetPosterior <- build_posterior(stochastic=stochastic,SEIT4L=df_set$SEIT4L,priorInfo=df_set$priorInfo, n_particles=48)
+	targetPosterior <- build_posterior(stochastic=stochastic,model=df_set$model,priorInfo=df_set$priorInfo, n_particles=df_set$n_particles)
 
 	if(stochastic){
 		data(mcmc_TdC_deter_longRun)
-		covmat <- mcmc_SEIT2L_infoPrior_theta1$covmat.empirical		
+		covmat <- mcmc_SEIT4L_infoPrior_theta1$covmat.empirical		
 		proposal.sd <- NULL
 	} else {
 		proposal.sd <- c("R0"=1, "D_lat"=0.5 , "D_inf"=0.5, "alpha"=0.1, "D_imm"=2, "rho"=0.1)	
@@ -230,8 +231,8 @@ run_MCMC <- function(stochastic=FALSE) {
 	upper <- c("R0"=Inf, "D_lat"=Inf , "D_inf"=Inf, "alpha"=1, "D_imm"=Inf, "rho"=1)
 
 	
-	analysis <- paste0(ifelse(df_set$SEIT4L,"SEIT4L","SEITL"),"_",ifelse(stochastic,"sto","deter"),"_",ifelse(df_set$priorInfo,"info","unif"),"Prior_n=",n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_set=",i_process)
-	dir_name <- ifelse(stochastic,"mcmc_sto_bad","mcmc_deter")
+	analysis <- paste0(df_set$model,"_",ifelse(stochastic,paste0("sto_np=",df_set$n_particles),"deter"),"_",ifelse(df_set$priorInfo,"info","unif"),"Prior_n=",n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_set=",i_process)
+	dir_name <- ifelse(stochastic,"mcmc_sto","mcmc_deter")
 	set_dir(dir_name)
 
 	if(stochastic){
@@ -352,7 +353,7 @@ main <- function() {
 	# n_particles <- 12*c(seq(4,30,4),seq(34,88,8))
 	# test_smc(n_iter=100,n_particles=n_particles)
 
-	run_MCMC(stochastic=FALSE)
+	run_MCMC(stochastic=TRUE)
 	
 }
 

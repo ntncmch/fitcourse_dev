@@ -11,6 +11,7 @@ start_me <- function() {
 	library(jsonlite)
 	library(testthat)
 	library(plyr)
+	library(dplyr)
 	library(lubridate)
 	library(ggplot2)
 	library(stringr)
@@ -66,8 +67,17 @@ create_SMC_benchmark <- function() {
 
 create_trace_mcmc_deter <- function() {
 
-	df_set <- 	expand.grid(theta=1:2,priorInfo=c(FALSE,TRUE),SEIT2L=c(FALSE,TRUE),n_iteration=c(5000,100000))
+
+
+	df_set <- 	expand.grid(theta=1:2,priorInfo=c(FALSE,TRUE),model=c("SEITL","SEIT2L"),n_iteration=c(5000,100000)) 
 	df_set$set <- 1:nrow(df_set)
+	# Fix for SEIT4L as I resimulated only SEIT4L and not SEITL so "set" is not appropriate
+	# df_set <- df_set %>% filter(!SEIT4L)
+
+	df_set_SEITL4 <- expand.grid(theta=1:2,priorInfo=c(FALSE,TRUE),model="SEIT4L",n_iteration=c(5000,100000))
+	df_set_SEITL4$set <- 1:nrow(df_set_SEITL4)
+	df_set <- rbind(df_set, df_set_SEITL4)
+
 	dir_name <- "/Users/Tonton/edu/Fit_course/dev/dataset/mcmc_deter"
 	dir_rds <- file.path(dir_name,"rds")
 	dir_fig <- file.path(dir_name,"figures")
@@ -76,21 +86,31 @@ create_trace_mcmc_deter <- function() {
 	adapt_size_cooling <- 0.999
 	adapt_shape_start <- 200
 
-	# long trace
-	df_prel <- subset(df_set,n_iteration== 5000 & !priorInfo & theta==1)
+	# short trace
+	df_prel <- subset(df_set, n_iteration== 5000 & !priorInfo & theta==1)
 
-	list_trace <- dlply(df_prel,c("theta","priorInfo","SEIT2L","n_iteration"),function(df) {
+	list_trace <- dlply(df_prel,c("theta","priorInfo","model","n_iteration"),function(df) {
 
-		analysis <- paste0("mcmc_",ifelse(df$SEIT2L,"SEIT2L","SEITL"),"_deter_",ifelse(df$priorInfo,"info","unif"),"Prior_n=",df$n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_set=",df$set,".rds")
+		analysis <- paste0("mcmc_",df$model,"_deter_",ifelse(df$priorInfo,"info","unif"),"Prior_n=",df$n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_set=",df$set,".rds")
 
 		ans <- readRDS(file.path(dir_rds,analysis))
 
 		return(ans)
 	})
 	
-	name <- sapply(df_prel$SEIT2L, function(x) {paste0("mcmc_",ifelse(x,"SEIT2L","SEITL"))})
+	name <- sapply(df_prel$model, function(x) {paste0("mcmc_",x)})
 	
 	names(list_trace) <- name
+
+	# change names of SEITL and SEIT2L (since 2015 we use _ in param names instead of .)
+	change_names <- name[!str_detect(name, "SEIT4L")]
+	keep_name <- setdiff(name, change_names)
+	for(x in change_names){
+		names(list_trace[[x]]$trace) <- names(list_trace[[keep_name]]$trace)
+		rownames(list_trace[[x]]$covmat.empirical) <- rownames(list_trace[[keep_name]]$covmat.empirical)
+		colnames(list_trace[[x]]$covmat.empirical) <- colnames(list_trace[[keep_name]]$covmat.empirical)
+	}
+
 
 	attach(list_trace)
 
@@ -103,13 +123,13 @@ create_trace_mcmc_deter <- function() {
 	# long trace
 	df_long <- subset(df_set,n_iteration>5000)
 
-	list_trace_name <- dlply(df_long,c("theta","priorInfo","SEIT2L","n_iteration"),function(df) {
+	list_trace_name <- dlply(df_long,c("theta","priorInfo","model","n_iteration"),function(df) {
 
-		analysis <- paste0("mcmc_",ifelse(df$SEIT2L,"SEIT2L","SEITL"),"_deter_",ifelse(df$priorInfo,"info","unif"),"Prior_n=",df$n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_set=",df$set,".rds")
+		analysis <- paste0("mcmc_",df$model,"_deter_",ifelse(df$priorInfo,"info","unif"),"Prior_n=",df$n_iteration,"_size=",adapt_size_start,"_cool=",adapt_size_cooling,"_shape=",adapt_shape_start,"_set=",df$set,".rds")
 
 		ans <- readRDS(file.path(dir_rds,analysis))
 
-		name <- paste0("mcmc_",ifelse(df$SEIT2L,"SEIT2L","SEITL"),ifelse(df$priorInfo,"_infoPrior_","_"),"theta",df$theta)
+		name <- paste0("mcmc_",df$model,ifelse(df$priorInfo,"_infoPrior_","_"),"theta",df$theta)
 
 
 		return(list(ans,name))
@@ -119,6 +139,15 @@ create_trace_mcmc_deter <- function() {
 	list_name <- sapply(list_trace_name,function(x) {x[[2]]})
 
 	names(list_trace) <- list_name
+
+	change_names <- list_name[!str_detect(list_name, "SEIT4L")]
+	keep_name <- setdiff(list_name, change_names) %>% first
+	
+	for(x in change_names){
+		names(list_trace[[x]]$trace) <- names(list_trace[[keep_name]]$trace)
+		rownames(list_trace[[x]]$covmat.empirical) <- rownames(list_trace[[keep_name]]$covmat.empirical)
+		colnames(list_trace[[x]]$covmat.empirical) <- colnames(list_trace[[keep_name]]$covmat.empirical)
+	}
 
 	attach(list_trace)
 
@@ -1184,7 +1213,7 @@ dev <- function(){
 	# create R package
 	# create(dir_pkg)
 	# start_me()
-	document(dir_pkg,clean=FALSE)
+	document(dir_pkg)
 	# load_all(dir_pkg)
 	# test(dir_pkg)
 	# test(dir_pkg,"classe")
