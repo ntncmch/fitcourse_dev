@@ -1050,8 +1050,6 @@ play_guess <- function() {
 	init.state.guess3 <- c("S"=279,"E"=0,"I"=2,"T"=3,"L"=0,"Inc"=0)
 	init.state.guess5 <- c("S"=277,"E"=0,"I"=1,"T"=0,"L"=6,"Inc"=0)
 
-
-
 	theta.guess4 <- c("R0"=11.20, "D.lat"=2.07 , "D.inf"=2.44, "alpha"=0.53, "D.imm"=11.57, "rho"=0.71)
 
 	theta.guess5 <- c("R0"=6.3721, "D.lat"=1.3424 , "D.inf"=2.7904, "alpha"=0.4867, "D.imm"=10.0413, "rho"=0.6745)
@@ -1173,8 +1171,6 @@ test_pmcmc <- function() {
 	plotFit(SEIT2L_stoch,theta,init.state,data=FluTdC1971,n=100)
 
 }
-
-
 
 generate_knitr <- function() {
 
