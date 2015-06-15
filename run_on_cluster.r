@@ -29,7 +29,7 @@ build_posterior <- function(stochastic=FALSE, model=c("SEITL","SEIT2L","SEIT4L")
 		init.state <- c("S"=279,"E"=0,"I"=2,"T1"=3,"T2"=0,"T3"=0,"T4"=0,"L"=0,"Inc"=0)
 		if(stochastic){
 			data(SEIT4L_stoch)
-			my_fitmodel <- SEIT4L_sto
+			my_fitmodel <- SEIT4L_stoch
 		}else{
 			data(SEIT4L_deter)
 			my_fitmodel <- SEIT4L_deter
@@ -38,8 +38,8 @@ build_posterior <- function(stochastic=FALSE, model=c("SEITL","SEIT2L","SEIT4L")
 
 		init.state <- c("S"=279,"E"=0,"I"=2,"T1"=3,"T2"=0,"L"=0,"Inc"=0)
 		if(stochastic){
-			data(SEIT2L_sto)
-			my_fitmodel <- SEIT2L_sto
+			data(SEIT2L_stoch)
+			my_fitmodel <- SEIT2L_stoch
 		}else{
 			data(SEIT2L_deter)
 			my_fitmodel <- SEIT2L_deter
@@ -49,8 +49,8 @@ build_posterior <- function(stochastic=FALSE, model=c("SEITL","SEIT2L","SEIT4L")
 
 		init.state <- c("S"=279,"E"=0,"I"=2,"T"=3,"L"=0,"Inc"=0)
 		if(stochastic){
-			data(SEITL_sto)
-			my_fitmodel <- SEITL_sto
+			data(SEITL_stoch)
+			my_fitmodel <- SEITL_stoch
 		}else{
 			data(SEITL_deter)
 			my_fitmodel <- SEITL_deter
