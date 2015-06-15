@@ -51,7 +51,7 @@ dataset <- FluTdC1971 %>% select(-time) %>% rename(Inc_obs = obs)
 dir_model <- path.expand("~/fitcourse/dev/ssm")
 
 my_ssm <- new_ssm(
-	model_path=file.path(dir_model,"SEIT4L_ssm"),
+	model_path=file.path(dir_model,"SEIT4L"),
 	pop_name="TdC",
 	data=dataset,
 	start_date=min(dataset$date), # start model integration 1 day before the first observation
