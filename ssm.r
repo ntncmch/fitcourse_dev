@@ -16,14 +16,14 @@ SEIT4L_inputs <- list(
 	input(name="T3", description="initial number of temporary immune", value=0),
 	input(name="T4", description="initial number of temporary immune", value=0),
 	input(name="L", description="initial number of recovered", value=0),
-	input(name="R0", description="basic reproduction number", prior=unif(1,50), value=2), 
-	input(name="D_lat", description="latent period", prior=truncnorm(mean=2,sd=1,a=0), value=2),
-	input(name="D_inf", description="infectious period", prior=truncnorm(mean=2,sd=1,a=0), value=2),
+	input(name="R0", description="basic reproduction number", prior=unif(1,50), value=10.2510326), 
+	input(name="D_lat", description="latent period", prior=truncnorm(mean=2,sd=1,a=0), value=1.8069393),
+	input(name="D_inf", description="infectious period", prior=truncnorm(mean=2,sd=1,a=0), value=2.4943621),
 	# input(name="D_lat", description="latent period", prior=unif(0,10), value=2),
 	# input(name="D_inf", description="infectious period", prior=unif(0,15), value=2),
-	input(name="alpha", description="infectious period", prior=unif(0,1), value=0.8),
-	input(name="D_imm", description="infectious period", prior=unif(0,50), value=16),
-	input(name="rho", description="reporting rate", prior=unif(0,1), value=0.85),
+	input(name="alpha", description="infectious period", prior=unif(0,1), value=0.4819076),
+	input(name="D_imm", description="infectious period", prior=unif(0,50), value=12.6247195),
+	input(name="rho", description="reporting rate", prior=unif(0,1), value=0.6697262),
 	input(name="beta", description="effective contact rate",transformation="R0/D_inf")
 	)
 
@@ -54,12 +54,15 @@ my_ssm <- new_ssm(
 	model_path=file.path(dir_model,"SEIT4L"),
 	pop_name="TdC",
 	data=dataset,
-	start_date=min(dataset$date), # start model integration 1 day before the first observation
+	start_date=min(dataset$date)-1, # start model integration 1 day before the first observation
 	inputs=SEIT4L_inputs,
 	reactions=SEIT4L_reactions,
 	observations=SEIT4L_observations
 	)
 
+
+# my_ssm %>% smc(approx="psr", dt=0.01, n_parts=400) %>% print
+# my_ssm %>% smc(approx="ode", dt=0.05, n_parts=1) %>% print
 
 # my_ssm_lhs <- my_ssm %>% do_lhs(n=20, do="simplex", trace=FALSE, iter=100, prior=TRUE) %>% get_max_lhs %>% print
 

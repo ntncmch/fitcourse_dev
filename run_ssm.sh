@@ -74,9 +74,7 @@ cd ${m}/bin
 
 ## pMCMC ------------------------------------------------------------------------------------------------
 mkdir ${a}/burning
-cat ${m}/theta.json | ./pmcmc --iter 10000 --eps_switch 100 --cooling 0.99 --switch 500 --seed_time | ./pmcmc --iter 10000 --eps_switch 100 --cooling 0.99 --switch 500 --seed_time | ./pmcmc psr -J 20 -D 0.05 --iter 3000 --eps_switch 50 --cooling 0.99 --switch 100 --seed_time --root ${a}/burning --trace --traj --n_traj 500 --acc --id ${r} 
-
-#| ./pmcmc psr -J 396 -N 12 -D 0.05 --iter 3000 --eps_switch 50 --cooling 0.99 --switch 100 --trace --acc --traj --n_traj 500 --seed_time --id ${r} --root ${a} > ${a}/theta_out_${r}.json
+cat ${m}/theta.json | ./pmcmc --iter 10000 --eps_switch 100 --cooling 0.99 --switch 500 --seed_time | ./pmcmc --iter 10000 --eps_switch 100 --cooling 0.99 --switch 500 --seed_time | ./pmcmc psr -J 20 -D 0.05 --iter 3000 --eps_switch 50 --cooling 0.99 --switch 100 --seed_time --root ${a}/burning --trace --traj --n_traj 500 --acc --id ${r} | ./pmcmc psr -J 408 -N 12 -D 0.05 --iter 3000 --eps_switch 50 --cooling 0.99 --switch 100 --trace --acc --traj --n_traj 500 --seed_time --id ${r} --root ${a} > ${a}/theta_out_${r}.json
 
 # cat ../theta_mean_pmcmc.json | ./pmcmc --iter 5000 --eps_switch 20 --cooling 0.99 --switch 500 --seed_time --trace --traj --n_traj 500 --acc --n_obs 10
 
