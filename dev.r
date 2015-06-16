@@ -156,6 +156,108 @@ create_trace_mcmc_deter <- function() {
 
 }
 
+create_trace_mcmc_sto_ssm <- function() {
+
+	# data(pmcmc_SEIT2L_infoPrior_n50)
+	# names(pmcmc_SEIT2L_infoPrior_n50$chain1)
+	# head(pmcmc_SEIT2L_infoPrior_n50$chain1$trace)
+	# print(pmcmc_SEIT2L_infoPrior_n50$chain1$covmat.empirical)
+
+	library(coda)
+	library(fitR)
+
+	data(SEIT4L_deter)
+	theta_names <- SEIT4L_deter$theta.names
+
+	# informative prior
+	dprior <- function(theta) {
+
+	# package with truncated normal distribution
+		library(truncnorm)
+
+		log.prior.R0 <- dunif(theta[["R0"]], min = 1, max = 50, log = TRUE)
+	# normal distribution with mean = 2 and sd = 1 and truncated at 0
+		log.prior.latent.period <- log(dtruncnorm(theta[["D_lat"]], a = 0, b = Inf, mean = 2, sd = 1))
+	# normal distribution with mean = 2 and sd = 1 and truncated at 0
+		log.prior.infectious.period <- log(dtruncnorm(theta[["D_inf"]], a = 0, b = Inf, mean = 2, sd = 1))
+		log.prior.temporary.immune.period <- dunif(theta[["D_imm"]], min = 0, max = 50, log = TRUE)
+		log.prior.probability.long.term.immunity <- dunif(theta[["alpha"]], min = 0, max = 1, log = TRUE)
+		log.prior.reporting.rate <- dunif(theta[["rho"]], min = 0, max = 1, log = TRUE)
+
+		return(log.prior.R0 + log.prior.latent.period + log.prior.infectious.period + log.prior.temporary.immune.period + log.prior.probability.long.term.immunity + log.prior.reporting.rate)
+
+	}
+
+	dir_name <- "/Users/Tonton/edu/Fit_course/dev/ssm/SEIT4L/pmcmc"
+
+	dir_short <- file.path(dir_name, "burning")
+	dir_long <- dir_name	
+
+	## short runs
+	all_chains <- 1:5
+	names(all_chains) <- paste0("chain", all_chains)
+
+	pmcmc_SEIT4L_infoPrior_n50 <- llply(all_chains, function(i) {
+
+		trace <- read.csv(file.path(dir_short, paste0("trace_",i-1,".csv"))) %>% select(-index) %>% rename(log.posterior=fitness)
+
+		trace <- ddply(trace, theta_names, function(df) {
+
+			theta <- df[1, theta_names] %>% as.vector
+			df$log.prior <- dprior(theta)
+
+			return(df)
+
+		})		
+
+		trace <- trace %>% mutate(log.likelihood=log.posterior-log.prior) %>% .[c(theta_names, c("log.prior","log.likelihood","log.posterior"))]
+
+		trace_coda <- mcmc(trace)
+
+		acceptance_rate <- 1 - rejectionRate(trace_coda) %>% first %>% unname
+
+		covmat_empirical <- cov(trace %>% select(-log.posterior))
+
+		return(list(trace=trace, acceptance.rate=acceptance_rate, covmat.empirical=covmat_empirical))
+
+	})
+
+	save(pmcmc_SEIT4L_infoPrior_n50,file=file.path(dir_pkg,"data","pmcmc_SEIT4L_infoPrior_n50.rdata"))
+
+
+	## long runs
+	all_chains <- 1:5
+	names(all_chains) <- paste0("chain", all_chains)
+
+	pmcmc_SEIT4L_infoPrior_n400 <- llply(all_chains, function(i) {
+
+		trace <- read.csv(file.path(dir_long, paste0("trace_",i-1,".csv"))) %>% select(-index) %>% rename(log.posterior=fitness)
+
+		trace <- ddply(trace, theta_names, function(df) {
+
+			theta <- df[1, theta_names] %>% as.vector
+			df$log.prior <- dprior(theta)
+
+			return(df)
+
+		})		
+
+		trace <- trace %>% mutate(log.likelihood=log.posterior-log.prior) %>% .[c(theta_names, c("log.prior","log.likelihood","log.posterior"))]
+		
+		trace_coda <- mcmc(trace)
+
+		acceptance_rate <- 1 - rejectionRate(trace_coda) %>% first %>% unname
+
+		covmat_empirical <- cov(trace %>% select(-log.posterior))
+
+		return(list(trace=trace, acceptance.rate=acceptance_rate, covmat.empirical=covmat_empirical))
+
+	})
+
+	save(pmcmc_SEIT4L_infoPrior_n400,file=file.path(dir_pkg,"data","pmcmc_SEIT4L_infoPrior_n400.rdata"))
+
+}
+
 create_trace_mcmc_sto <- function() {
 
 	dir_name <- "/Users/Tonton/edu/Fit_course/dev/dataset/mcmc_sto_SEIT2L_n408"
@@ -1242,7 +1344,7 @@ main <- function() {
 	# create_data_fitmodel_SEITL()
 	# create_data_fitmodel_SIR()
 	
-	dev()
+	# dev()
 	# test_bootstrap()
 	# generate_knitr()
 	# analyse_mcmc_SEITL_deter()
@@ -1252,6 +1354,7 @@ main <- function() {
 
 	# test_update()
 
+	# create_trace_mcmc_sto_ssm()
 
 }
 
