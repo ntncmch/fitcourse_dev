@@ -1354,7 +1354,7 @@ main <- function() {
 
 	# test_update()
 
-	# create_trace_mcmc_sto_ssm()
+	create_trace_mcmc_sto_ssm()
 
 }
 
