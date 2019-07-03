@@ -210,7 +210,7 @@ create_trace_mcmc_sto_ssm <- function() {
 
 		})		
 
-		trace <- trace %>% mutate(log.likelihood=log.posterior-log.prior) %>% .[c(theta_names, c("log.prior","log.likelihood","log.posterior"))]
+		trace <- trace %>% mutate(log.posterior=log.posterior + 10, log.likelihood=log.posterior-log.prior) %>% .[c(theta_names, c("log.prior","log.likelihood","log.posterior"))]
 
 		trace_coda <- mcmc(trace)
 
@@ -242,7 +242,7 @@ create_trace_mcmc_sto_ssm <- function() {
 
 		})		
 
-		trace <- trace %>% mutate(log.likelihood=log.posterior-log.prior) %>% .[c(theta_names, c("log.prior","log.likelihood","log.posterior"))]
+		trace <- trace %>% mutate(log.posterior=log.posterior + 10, log.likelihood=log.posterior-log.prior) %>% .[c(theta_names, c("log.prior","log.likelihood","log.posterior"))]
 		
 		trace_coda <- mcmc(trace)
 
@@ -1344,7 +1344,7 @@ main <- function() {
 	# create_data_fitmodel_SEITL()
 	# create_data_fitmodel_SIR()
 	
-	# dev()
+	dev()
 	# test_bootstrap()
 	# generate_knitr()
 	# analyse_mcmc_SEITL_deter()
@@ -1354,7 +1354,7 @@ main <- function() {
 
 	# test_update()
 
-	create_trace_mcmc_sto_ssm()
+	# create_trace_mcmc_sto_ssm()
 
 }
 
